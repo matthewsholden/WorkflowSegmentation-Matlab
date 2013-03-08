@@ -5,43 +5,37 @@
 classdef Data
     
     properties (SetAccess = private)
-        %Store the time associated with each data point
+        %Time stamp of each data point
         T;
-        %This will store the actual data
+        %Observation at each time stamp
         X;
-        %Store the ground-truth task associated with each data point
+        %Ground truth task segmentation
         K;
-        %Store the skill associated with each data point
+        %Skill of performer
         S;
-        %Keep a count of how many data points we have
-        n;
-        %And a count of how many dimensions the data has
-        dim;
-        %The maximum task number
+        %Count of data points; dimensionality of observations
+        count;  dim;
+        %Maximum task number
         maxTask;
-        %Note that this object is specific to a particular procedure, so
-        %the S value will be the only skill-level, do not keep a value for
-        %the maximum skill-level
-    end
+    end %Properties
     
     methods
         
-        %This constructor creates an object with X defined in the
-        %parameters
+        %Constructor creates data object as defined by parameters
         function D = Data(t,x,k,s)
-            %Assign T to t
+            
             D.T = t;
-            %Assign X to x
             D.X = x;
-            %K to k
             D.K = k;
-            %S to s
             D.S = s;
+            
             %Calculate the dimensionality and number of data points
-            [D.n D.dim] = size(x);
+            [D.count D.dim] = size(x);
+            
             %Calculate the total number of tasks
             D.maxTask = max(k);
-        end
+            
+        end%function
         
         
         %Calculate the task-wise mean value for each dimension
@@ -50,156 +44,155 @@ classdef Data
             %Initialize the mean and standard deviation to zero
             mn = zeros(D.maxTask,D.dim);
             sd = zeros(D.maxTask,D.dim);
-            count = zeros(D.maxTask,1);
+            taskCount = zeros(D.maxTask,1);
             
-            %Calculate the mean and standard deviation at the same time
-            for i=1:D.n
-                %Use the task as the index
+            %Calculate mean and standard deviation
+            for i=1:D.count
                 mn(D.K(i),:) = mn(D.K(i),:) + D.X(i,:);
                 sd(D.K(i),:) = sd(D.K(i),:) + D.X(i,:).^2;
-                count(D.K(i)) = count(D.K(i)) + 1;
+                taskCount(D.K(i)) = taskCount(D.K(i)) + 1;
             end
             
-            %Now, calculate the mean and standard deviation, iterating over
-            %each task
+            %Calculate mean and standard deviation for each task
             for k=1:D.maxTask
-                %Calculate the mean for each task in each dimension
-                mn(k,:) = mn(k,:) / count(k);
-                %Take absolute value in case of roundoff errors causing an
-                %imaginary value here
-                sd(k,:) = abs( sqrt ( sd(k,:) / count(k) - mn(k,:).^2 ) );
+                %Calculate mean for each task in each dimension
+                mn(k,:) = mn(k,:) / taskCount(k);
+                %Absolute value avoids roundoff errors yielding imaginary values
+                sd(k,:) = abs( sqrt ( sd(k,:) / taskCount(k) - mn(k,:).^2 ) );
             end
             
-        end
+        end%function
         
-        %This function will add noise to all degrees of freedom, as
-        %specified by the parameters
+        %This function will add noise to all degrees of freedom
         function DN = addNoise(D,X_Bs,X_Wt,X_Mx)
-            %Calculate the stats for each task
-            [mn sd] = D.taskStats();
-            %Initialize our matrix X
+            
+            %Initialize our matrix of noisy data
             XN = size(D.X);
-            %Add noise to each dimension
-            for i=1:D.n
+            
+            %Calculate stats for each task
+            [~, sd] = D.taskStats();
+            
+            %Add noise to each dimension independently
+            for i=1:D.count
                 for j=1:D.dim
                     %Determine what noise to add given the current task
                     XN(i,j) = D.X(i,j) + addNoise(j,D.K(i),sd',X_Bs,X_Wt,X_Mx);
                 end
             end
+            
             %Create a new Data object with added noise
             DN = Data(D.T,XN,D.K,D.S);
-        end
+            
+        end%function
         
-        %This function will add human noise to all degrees of freedom, as
-        %specified by the parameters
+        %This function will add human noise to all degrees of freedom
         function DN = addHumanNoise(D,X_Bs,X_Wt,X_Mx,Human)
+            
             %Calculate the stats for each task
-            [mn sd] = D.taskStats();
-            %Add noise to the entire procedure, since for human
-            %Determine what noise to add given the current task
-            DN = humanNoise2(D,sd',X_Bs,X_Wt,X_Mx,Human);
-        end
+            [~, sd] = D.taskStats();
+            
+            %Add noise to the entire procedure
+            DN = humanNoise(D,sd',X_Bs,X_Wt,X_Mx,Human);
+            
+        end%function
         
-        %This function will normalize a particular subset of the dimensions
-        %for every time step. This will be useful for adding noise to
-        %quaternions
+        %Normalize a particular subest of dimensions for all time steps
+        %In particular, use this to normalize noisy quaternions
         function DQ = normalizeQuaternion(D,Q)
-            %Initialize the normalize data matrix
+            
+            %Initialize the normalized data matrix
             XQ = D.X;
+            
             %For each time step
             for i=1:D.n
                 XQ(i,Q==1) = normr(D.X(i,Q==1));
             end
-            %Now, create a new Data object with the required normalized
-            %parts
+            
+            %Create a new Data object with the required normalized parts
             DQ = Data(D.T,XQ,D.K,D.S);
-        end
+            
+        end%function
         
-        %This function will normalize all degrees of freedom for the data
-        %such that degree of freedom has mean zero and standard deviation
-        %one
-        function DM = normalize(D)
-            %Initialize the normalize data matrix
+        
+        %Standardize all dofs of the data (mean = 0, var = 1)
+        %This will standardize by task (mean = 0, var = 1 for each task)
+        function DM = standardize(D)
+            
+            %Initialize the standardized data matrix
             XM = D.X;
+            
             %Grab the stats for this data object
             [mn sd] = D.taskStats();
+            
             %For each time step
-            for i=1:D.n
+            for i=1:D.count
                 XM(i,:) = ( XM(i,:) - mn(D.K(i),:) ) ./ sd(D.K(i),:);
             end
+            
             %Ensure that any XM that is NaN or Inf is assigned zero
             XM(isnan(XM) | isinf(XM)) = 0;
-            %Now, create a new Data object with the required normalized
-            %parts
+            
+            %Create a new Data object with the required standardized parts
             DM = Data(D.T,XM,D.K,D.S);
-        end
+            
+        end%function
+        
+        
+        %Calculate the derivative of the data at every point
+        function DV = derivative(D,order)
+            
+            %Use derivCalc function to calculate derivative to any order
+            V = derivCalc(D.T,D.X,order);
+            %Create a new Data object with velocities
+            DV = Data(D.T,V,D.K,D.S);
+            
+        end%function
         
         
         %Filter the entire data set using moving average filtering
-        function DS = movingAverage(D,Param,filterName)
+        function DS = movingAverage(D,cut,filterName)
             %Apply the moving average filtering algorithm
-            DS = avgFilter(D,Param(1),filterName);
-        end
+            DS = avgFilter(D,cut,filterName);
+        end%function
         
-         %Filter translations using moving average filtering
-        function DS = movingAverageTrans(D,Param,Q,filterName)
-            %Extract the components that are translations
-            XT = D.X(:,~Q);
-            %Construct the corresponding Data object
-            DT = Data(D.T,XT,D.K,D.S);
-            %Apply the moving average filtering algorithm
-            DTS = avgFilter(DT,Param(1),filterName);
-            %Add the rotational components back
-            XS(:,~Q) = DTS.X;
-            XS(:,~~Q) = D.X(:,~~Q);
-            %Output the data object
-            DS = Data(D.T,XS,D.K,D.S);
-        end
+        
+        %Perform moving average filtering for the most recent point
+        function DS = movingAverageLast(D,cut,filterName)
+            %Apply the moving average filtering to only the last point
+            DS = avgFilterLast(D,cut,filterName);
+        end%function
+        
         
         %Filter the entire data set using Fourier low-pass filtering
-        function DS = fourier(D,Param,filterName)
+        function DS = fourier(D,cut,filterName)
             %Apply the Fourier low-pass filtering algorithm
-            DS = fourierFilter(D,Param(1),filterName);
-        end
+            DS = fourierFilter(D,cut,filterName);
+        end%function
         
-         %Filter translations using Fourier low-pass filtering
-        function DS = fourierTrans(D,Param,Q,filterName)
-            %Extract the components that are translations
-            XT = D.X(:,~Q);
-            %Construct the corresponding Data object
-            DT = Data(D.T,XT,D.K,D.S);
-            %Apply the Fourier low-pass filtering algorithm
-            DTS = fourierFilter(DT,Param(1),filterName);
-            %Add the rotational components back
-            XS(:,~Q) = DTS.X;
-            XS(:,~~Q) = D.X(:,~~Q);
-            %Output the data object
-            DS = Data(D.T,XS,D.K,D.S);
-        end
+        
+        %Filter the entire data set using a smoothing spline
+        function DS = sspline(D,alpha)
+            %Calculate the smoothing spline
+            DS = smoothingSpline(D,alpha);
+        end%function
+        
+        
+        %Filter the entire data set using double exponential smoothing
+        function DS = dexp(D,ab)
+            %Calculate the double exponential smoothing
+            DS = doubleExpSmooth(D,ab(1),ab(2));
+        end%function
+        
         
         %Perform Kalman filtering for all points in the data matrix
-        function DS = kalman(D,Param)
+        function DS = kalman(D,N)
             %Apply the Kalman filtering algorithm
-            DS = kalmanFilterAll(D,Param(1),Param(2));
-        end
+            DS = kalmanFilter(D,N(1),N(2));
+        end%function
         
-        %Perform Kalman filtering for all translations in the data matrix
-        function DS = kalmanTrans(D,Param,Q)
-            %Extract the components that are translations
-            XT = D.X(:,~Q);
-            %Construct the corresponding Data object
-            DT = Data(D.T,XT,D.K,D.S);
-            %Apply the Kalman filtering algorithm
-            DTS = kalmanFilterAll(DT,Param(1),Param(2));
-            %Add the rotational components back
-            XS(:,~Q) = DTS.X;
-            XS(:,~~Q) = D.X(:,~~Q);
-            %Output the data object
-            DS = Data(D.T,XS,D.K,D.S);
-        end
         
         %Perform Kalman filtering for the most recent point
-        function [DS P] = kalmanOne(D,DX,P,N)
+        function [DS P] = kalmanLast(D,DX,P,N)
             %The length of the data
             k = size(D.T,1);
             %Calculate the number of steps to use in calculations
@@ -208,174 +201,281 @@ classdef Data
             %Only if the time steps are large enough
             if (NS > 1 && NZ > 1)
                 %Apply the Kalman filtering algorithm to only the last point
-                [XS P] = kalmanFilter(DX.X,D.X(1:end-1,:),D.X(end),P,NS,NZ);
+                [XS P] = kalmanFilterLast(DX.X,D.X(1:end-1,:),D.X(end),P,NS,NZ);
                 %Return the sequence with the last point replaced
                 DS = Data(D.T,cat(1,D.X(1:end-1,:),XS),D.K,D.S);
             else
                 DS = Data(D.T,D.X,D.K,D.S);
             end%if
             
-        end
+        end%function
+        
         
         %Perform an orthogonal transformation on our data
-        function DO = orthogonal(D,Param)
+        function DO = orthogonal(D,orthParam)
             %Perform the transform
-            [TO XO KO] = orth(D.T,D.X,D.K,Param);
-            %Create the new object storing the orthogonally transformed
-            %data
-            DO = Data(TO,XO,KO,D.S);
-        end
+            DO = orthogonalTransform(D,orthParam);
+        end%function
+        
         
         %Perform an orthogonal transformation on our data
-        function DO = currentOrthogonal(D,Param)
+        function DO = orthogonalLast(D,orthParam)
             %Perform the transform
-            [TO XO KO] = currentOrth(D.T,D.X,D.K,Param);
-            %Create the new object storing the orthogonally transformed
-            %data
-            DO = Data(TO,XO,KO,D.S);
-        end
+            DO = orthogonalTransformLast(D,orthParam);
+        end%function
+        
         
         %Perform a principal component analysis on our data
-        function [DP Trans Mn] = principal(D,userComp)
+        function [DP Trans Mn] = pca(D,pcaParam)
+            
             %Perform the principal component analysis
-            [XP Trans Mn] = pca(D.X,userComp);
-            %Now, create the new data object with the pca transformed data
+            [XP Trans Mn] = pca(D.X,pcaParam);
+            %Create the new data object with the pca transformed data
             DP = Data(D.T,XP,D.K,D.S);
-        end
+            
+        end%function
         
-        %Perform a linear discriminant analysis on our data
-        function [DP Trans W] = linear(D,userComp)
-            %Create a cell array of X's such that we can store each task to
-            %a cell array
-            X_Task = cell(1,D.maxTask);
-            %Break the data down by procedure, iterating over all tasks
-            for t = 1:D.maxTask
-                X_Task{t} = D.X(D.K==t,:);
-            end
-            
-            %Perform the lda analysis
-            [XL_Task Trans] = lda2(X_Task,userComp,'dependent');
-            %Create a matrix to store the transformed data in
-            XL = zeros(size(D.X,1),size(Trans{1},2));
-            
-            %Now, recombine the cell array we have received back into a
-            %single matrix of dofs in time
-            for t = 1:D.maxTask
-                XL(D.K==t,1:size(XL_Task{t},2)) = XL_Task{t};
-            end
-            
-            %Determine the class weightings
-            W = classWeight(XL_Task);
-            
-            %Now, create the new data object with the lda transformed data
-            DP = Data(D.T,XL,D.K,D.S);
-        end
         
-        %Perform a pca transformation, via an addition, followed by a
-        %multiplication. This will be useful for a pca recovery.
-        function DT = pcaTransform(D,Trans,Mn)
-            %First, for each dimension, subtract off the mean
-            XT = bsxfun(@minus,D.X,Mn);
+        %Transform data via the calculated prinicipal component analysis
+        function DT = pcaTransform(D,Eigen,Mean)
             
-            %Now apply the transformation vector to the data
-            XT = (XT * Trans);
+            %Make the mean zero in each dimension
+            XT = bsxfun(@minus,D.X,Mean);
             
-            %Now, create a data object with the resulting transformed data
+            %Apply the covariance eigenvector multiplication transform
+            XT = (XT * Eigen);
+            
+            %Create a data object with the resulting transformed data
             DT = Data(D.T,XT,D.K,D.S);
-        end
+            
+        end%function
         
-        %Perform a lda transformation, by breaking the data down into
+        
+        %Perform a class dependent linear discriminant analysis on data
+        function [DL Trans Mn] = lda(D,D_Cell)
+            
+            %Assume that the data objects are in cells by task
+            %Convert into cell arrays of positions
+            [~, XL] = DataCell(D_Cell);
+            
+            %Perform the lda on the cell array of dofs
+            [X_Trans Trans Mn] = lda(XL);
+            
+            %Reconstruct the date objects of lda transformed data
+            DL = cell(size(D_Cell));
+            for i=1:numel(D_Cell)
+                DL{i} = Data(D_Cell{i}.T, X_Trans{i}, D_Cell{i}.K, D_Cell{i}.S);
+            end%for
+            
+        end%function
+        
+        
+        %Transform data by calculated lda transformation for specific class
         function DT = ldaTransform(D,Trans)
-            %Create a cell array of data objects, each with the transformed
-            %data by the lda transform for each task
-            DT = cell(1,length(Trans));
-            XT = cell(1,length(Trans));
-            %Iterating over all tasks...
-            for t = 1:length(Trans)
-                %Now, for each task, perform the multiplication
-                XT{t} = (D.X * Trans{t});
-                
-                %Now, create a data object with the resulting transformed data
-                DT{t} = Data(D.T,XT{t},D.K,D.S);
-            end
             
-        end
+            %Apply the covariance eigenvector multiplication transform
+            XT = D.X * Trans;
+            %Create the object of lda transformed data
+            DT = Data(D.T, XT, D.K, D.S);
+            
+        end%function
         
-        %Perform a lda transformation, by breaking the data down into
-        function DT = ldaTransformTask(D,Trans)
-            %Create a cell array of data objects, each with the transformed
-            %data by the lda transform for each task
-            XT = [];
-            %Iterating over all tasks...
-            for t = 1:D.maxTask
-                %Break the procedure down into its tasks
-                X_Task = D.X(D.K==t,:);
-                
-                %Now, for each task, perform the multiplication
-                X_Task = (X_Task * Trans{t});
-                
-                %We must pad the transformed data with zeros, noting that
-                %the transformed data will not have greater dimension than
-                %the untransformed data
-                XT = padcat(1,XT,X_Task);
-                
-            end
-            
-            %Now, create a data object with the resulting transformed data
-            DT = Data(D.T,XT,D.K,D.S);
-            
-        end
         
-        %Perform a kmeans clustering using the appropriate weighting
-        %calculated using the z3 weighting method
-        function [DC C] = wmeans(D,k,W)
+        %Weighted kmeans clustering over specified number of centroids
+        function [DC Centroids] = wmeans(D,k,W)
+            
             %Perform the clustering using the weighted wmeans method
-            [XC C] = kmeansWeight(D.X,W,k);
+            [XC Centroids] = kmeansWeight(D.X,k,W);
+            
             %Create a new object using the clusters as data now
             DC = Data(D.T,XC,D.K,D.S);
-        end
+            
+        end%function
         
-        %Given we already know the centroids for the clustering, find the
-        %clusters that a set of points belong to, also, return the distance
-        %from our point to this closest centroid
-        function [DC dis] = findCluster(D,Cent,W)
-            %Calculate the distance from each point to each centroid using
-            %the appropriate norm
-            d = interDistances(D.X,Cent,W);
+        
+        %Calculate the closest cluster centroid to each point
+        function [DC dis] = findCluster(D,Centroids,W)
             
-            %Initialize out vector of clustered data
-            XC = zeros(size(D.X,1),1);
-            %And our vector of distances
-            dis = zeros(size(D.X,1),1);
+            %Calculate distance from each point to each centroid
+            d = interDistances(D.X,Centroids,W);
             
-            %Return the index yielding the minimum distance to a centroid
-            %for each point
-            for i=1:size(D.X,1)
-                [dis(i) XC(i)] = min(d(i,:));
-            end
+            %Calculate the nearest cluster and the distance to it
+            [dis XC] = min(d,[],2);
             
             %Create a new data object with the cluster index as observation
             DC = Data(D.T,XC,D.K,D.S);
             
-        end
+        end%function
         
         
-        %Concatenate two data objects, by just sticking the records end to
-        %end
+        %Calculate the closest LDA cluster
+        function [DC Trans_Comp dis] = findLDACluster(D,Trans,Centroids,W)
+            
+            %Preallocate the cell arrays of data
+            DL = cell(size(Trans));
+            DCC = cell(size(Trans));
+            dis = cell(size(Trans));
+            
+            %Iterate over all classes
+            for j = 1:length(Trans)
+                %Perform an LDA transform for all classes
+                DL{j} = D.ldaTransform(Trans,j);
+                %And find the closest cluster
+                [DCC{j} dis{j}] = DL{j}.findCluster(Centroids,W);
+            end%for
+            
+            %Put together the cell array of distances to find the smallest
+            dis = cellToMatrix(dis);
+            %Ensure that dis is a row vector
+            if (iscolumn(dis))
+                dis = dis';
+            end%if
+            %Calculate the smallest distances
+            [dis Trans_Comp] = min(dis,[],2);
+            %Put together the cell array of clusters
+            [~, XCC] = DataCell(DCC);
+            XCC = cellToMatrix(XCC);
+            %Ensure that XCC is a row vector
+            if (iscolumn(XCC))
+                XCC = XCC';
+            end%if
+            %Determine the chosen cluster, and its index
+            XC = diag(XCC(:,Trans_Comp));
+            
+            %Output the data object of cluster numbers
+            DC = Data(D.T,XC,D.K,D.S);
+            
+        end%function
+        
+        
+        %Remove all entries of data object corresponding to false on second
+        function D_Rem = remove(D,DTF)
+            
+            %If the objects have difference lengths, then do nothing
+            if (D.count ~= DTF.count)
+                D_Rem = D;
+                return;
+            end%if
+            
+            %Create an empty vector of observations with removals
+            T_Rem = [];
+            X_Rem = [];
+            K_Rem = [];
+            
+            %If they have the same length, iterate over all observations
+            for i = 1:D.count
+                
+                %Test if the true/false data object is true
+                if ( DTF.X(i,:) )
+                    %Add the current observation to the matrix of observations
+                    T_Rem = cat(1, T_Rem, D.T(i,:) );
+                    X_Rem = cat(1, X_Rem, D.X(i,:) );
+                    K_Rem = cat(1, K_Rem, D.K(i,:) );
+                end%if
+                
+            end%for
+            
+            %Output the data object with removed observations
+            D_Rem = Data(T_Rem, X_Rem, K_Rem, D.S);
+            
+        end%function
+        
+        
+        %Given two Data objects, get one transform relative to the other
+        function D_Rel = relative(D1,D2,inv1,inv2)
+            
+            %If the objects have difference lengths, then do nothing
+            if (D1.count ~= D2.count)
+                D_Rel = D1;
+                return;
+            end%if
+            
+            %Create an empty vector of relative observations
+            X_Rel = [];
+            
+            %If they have the same length, iterate over all observations
+            for i = 1:D1.count
+                %Calculate the transformation matrix for each Data object
+                M1 = dofToMatrix( D1.X(i,:) );
+                M2 = dofToMatrix( D2.X(i,:) );
+                
+                %Invert, depending on the type
+                if (inv1)
+                    M1 = inv(M1);
+                end%if
+                if (inv2)
+                    M2 = inv(M2);
+                end%if
+                
+                %Now, calculate the relative dofs
+                X_Curr = matrixToDOF( M1 * M2 );
+                %Add the current observation to the matrix of observations
+                X_Rel = cat(1, X_Rel, X_Curr);
+            end%for
+            
+            %Output the data object with relative observations
+            D_Rel = Data(D1.T, X_Rel, D1.K, D1.S);
+            
+        end%function
+        
+        
+        %Apply calibration matrices to a Data object
+        function D_Cal = calibration(D,C1,C2)
+            
+            %Create an empty vector of relative observations
+            X_Cal = [];
+            
+            %If they have the same length, iterate over all observations
+            for i = 1:D.count
+                %Calculate the transformation matrix for each Data object
+                M = dofToMatrix( D.X(i,:) );
+                
+                %Now, calculate the relative dofs
+                X_Curr = matrixToDOF( C1 * M * C2 );
+                %Add the current observation to the matrix of observations
+                X_Cal = cat(1, X_Cal, X_Curr);
+            end%for
+            
+            %Output the data object with relative observations
+            D_Cal = Data(D.T, X_Cal, D.K, D.S);
+            
+        end%function
+        
+        
+        %Concatenate two data objects, by sticking the records end to end
         function D_Cat = concatenate(D1,D2)
-            %Concatenate the time
+            
+            %Concatenate everthing in the data object
             T_Cat = cat(1,D1.T,D2.T);
-            %Concatenate the dofs
             X_Cat = cat(1,D1.X,D2.X);
-            %Concatenate the tasks
             K_Cat = cat(1,D1.K,D2.K);
-            %Concatenate the skill
             S_Cat = cat(1,D1.S,D2.S);
+            
             %Create a new data object with the concatenated data
             D_Cat = Data(T_Cat,X_Cat,K_Cat,S_Cat);
-        end
+            
+        end%function
         
-    end
+        
+        %Concatenate two data objects' degrees of freedom
+        function D_Cat = concatenateDOF(D1,D2)
+            
+            %If the objects have difference lengths, then do nothing
+            if (D1.count ~= D2.count)
+                D_Cat = D1;
+                return;
+            end%if
+            
+            %Concatenate the degrees of freedom
+            X_Cat = cat(2,D1.X,D2.X);
+            
+            %Create a new data object with the concatenated data
+            D_Cat = Data(D1.T,X_Cat,D1.K,D1.S);
+            
+        end%function
+        
+        
+    end %Methods
     
     
-end
+end %Classdef

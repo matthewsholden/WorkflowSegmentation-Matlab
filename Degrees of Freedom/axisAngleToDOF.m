@@ -27,7 +27,7 @@ M2(1:3,4) = pos2(:)';
 %The reference position is already relative to the reference sensor
 %Get the insertion reference matrix
 o = Organizer();
-M3 = o.read('Tool');
+M3 = o.read('InsRef');
 
 M = inv(M3) * inv(M2) * M1;
 

@@ -4,14 +4,15 @@
 
 %Parameter X: A matrix of data points to cluster; rows correspond to
 %points, columns correspond to variables
-%Parameter W: The weighting associated with each dimension
 %Parameter k: The maximum number of clusters to produce
+%Parameter W: The weighting associated with each dimension
+
 
 %Return ix: A vector indicating the cluster index of each point above
 %Return C: The locations of the centroids of each cluster
 %Return dis: The distance from each point to each cluster
 %Return D: A matrix indicating the weighted cluster error for each cluster
-function [ix C dis D] = kmeansWeight(X,W,k)
+function [ix C dis D] = kmeansWeight(X,k,W)
 
 %Determine the size of our input points
 [n dim] = size(X);
@@ -109,7 +110,7 @@ while (change ~= 0 || empty)
     
     %Now, ensure that each cluster has at least one member. If one cluster
     %does not have a member, determine the farthest point from its cluster
-    [C empty] = moveEmpty(X,C,dis,ix,numMember);
+    [C empty] = moveEmpty(X,C,numMember);
     
     %Reassign the clusters to their centres if necessary
     if (empty)

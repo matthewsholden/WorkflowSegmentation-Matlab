@@ -1,81 +1,96 @@
-%This function will add human-like noise to a trajectory in any number of
-%degrees of freedom, as determined by the model for human motion given by
-%Tu in 2007
+%This function will add human-like noise using a leader-following type model
+%to represent the corrective motions of the human, but random noise will be
+%added to the motion
 
-%Parameter D: A Data object containing the intended trajectory of motion
-%Parameter vr: The variance for each normal distribution
-%Parameter phi: The parameters associated with the input sequence to the
-%curvature function, where 0 < phi < pi
+%The model is as follows: du(t + RT)/dt = -alpha * au^m * (au-iu) * (ix -
+%ax)^l + beta*(iu - au)
 
-%Return DN: The Data object of trajectory with noise due to human error
-function DN = humanNoise(D,vr,phi)
+%Parameter D: A data object representing the noise-free motion
+%Parameter X_Bs: The baseline noise associated with the motion
+%Parameter X_Wt: The weighted noise associated with the motion
+%Parameter X_Mx: The mixing proportion associated with each mixture of the
+%mixed Gaussian distribution
+%Parameter Human: The parameters associated with the human noise
 
-%Determine the number of degrees of freedom and time steps for the
-%trajectory
+%Return DN: A data object with human noise added
+function DN = humanNoise(D,sd,X_Bs,X_Wt,X_Mx,Human)
+
+%Let's rename the human parameters to have meaningful names
+reaction = Human(1);
+maxAccel = Human(2);
+speedSense = Human(3);
+distSense = Human(4);
+
+
+
+%Calculate the number of time steps and degrees of freedom
 [n dof] = size(D.X);
 
-%From the variance, calculate the standard deviation desired for each
-%normal distribution
-sd = sqrt(vr);
-%sd(1) = L, sd(2) = nu, sd(3) = v, sd(4) = Y;
+%Initialize all of our variables
+t = zeros(n,1);     dudt=zeros(n,dof);    dudtn=zeros(n,dof);
+ix = zeros(n,dof);    iu = zeros(n,dof);
+ax = zeros(n,dof);    au = zeros(n,dof);
 
-%We have several initial conditions
+%The initial time
+t(1) = D.T(1);
+%We need an initial position and velocity of motion. Assume this is the same
+%as the intended initial position and velocity.
+ix(1,:) = D.X(1,:);
+ax(1,:) = D.X(1,:);
+iu(1,:) = ( D.X(2,:) - D.X(1,:) ) / ( D.T(2) - D.T(1) );
+au(1,:) = ( D.X(2,:) - D.X(1,:) ) / ( D.T(2) - D.T(1) );
 
-%The initial velocity of the trajectory
-v(1,:) = ( D.X(2,:) - D.X(1,:) ) / ( D.T(2) - D.T(1) );
-%And from the initial velocity, the initial speed
-s(1) = norm( v(1,:) );
-%The initial (normalized) direction of the trajectory
-nx(1,:) = ( D.X(2,:) - D.X(1,:) );
-nx(1,:) = nx(1,:) / norm( nx(1,:) );
-%The initial curvature
-w(1) = random('norm',0, sd(2) / sqrt( s(1) ) );
-%The initial position
-x(1,:) = D.X(1,:);
-
-%We also need to calculate the parameters for the curvature function
-pL = ( 1 - sin (phi(1)) ) / cos(phi(1));
-pH = ( 1 - sin (phi(2)) ) / cos(phi(2));
-
-%Let's create an inline function to calculate delta
-H = inline('(1-pL)*(1-pH)*(1-z^-2) / (4*(1-pL*z^-1)*(1-pH*z^-1))','z','pL','pH');
-Hw = inline('(1-pL)*(1+pH)*(1+z^-1) / 4*v0*(1-pL*z^-1)*(1-pH*z^-1)','z','pL','pH','v0');
-
-%Iterate over all succeeding steps in time
+%Now, iterate over all time
 for j=2:n
-    %First, determine the current velocity from the previous velocity,
-    %iterating over all degrees of freedom
-    v(j,:) = ( D.X(j,:) - D.X(j-1,:) ) / ( D.T(j) - D.T(j-1) );
-    for i=1:dof
-        %v(j,i) = exp( random('norm', log( v(j-1,i) ), sd(3) ) );
+    %Calculate the current time
+    t(j) = D.T(j);
+    %Calculate the intended position of the needle
+    ix(j,:) = D.X(j,:);
+    %Calculate the intended velocity of the needle
+    iu(j,:) = ( ix(j,:) - ix(j-1,:) ) / ( t(j) - t(j-1) );
+    
+    %Calculate the time at which reaction will kick in
+    rj = find(D.T>=( t(j) + reaction ),1,'first');
+    if (~isempty(rj))
+        %Now, determine what the acceleration should be in reaction time number
+        %of seconds
+        dudt(rj,:) = -speedSense * ( au(j-1,:) - iu(j-1,:) );
+        dudt(rj,:) = dudt(rj,:) + distSense * ( ix(j-1,:) - ax(j-1,:) );
+        %Add some noise to the acceleration, iterating over all degrees of
+        %freedom
+        for i=1:dof
+            %We need an array of zero means for our Gaussian mixture object 
+            mu=zeros(size(X_Bs,3),1);
+            %The standard deviation sigma is given by the noise parameters
+            sigma=X_Bs(i,D.K(j),:)+X_Wt(i,D.K(j),:)*sd(i,D.K(j));
+            %The mixture components for each gaussian distribution
+            weight=zeros(size(X_Bs,3),1);
+            weight(:)=X_Mx(i,D.K(j),:);
+            
+            %Now, we create a gmdistribution object which will yield the appropriate
+            %mixture of Gaussian distributions
+            gmd=gmdistribution(mu,sigma,weight);
+            
+            %Add noise to the acceleration
+            dudtn(j,i) = dudt(j,i) + random(gmd);
+        end
+        
+        %Now, the acceleration may not exceed the threshold acclerations
+        for i=1:dof
+            dudt(rj,i) = min(dudt(rj,i),maxAccel);
+            dudt(rj,i) = max(dudt(rj,i),-maxAccel);
+        end
     end
-    %And calulate the associated speed
-    %s(j) = exp( random('norm', log( s(j-1) ), sd(3) ) );
-    s(j) = norm ( v(j,:) );
     
-    %For calculating the curvature, find a z from a normal distribution
-    z = random('norm',0,sd(2));
-    %Now calculate the value delta
-    %delta = H(z,pL,pH);
-    %delta
-    %Finally, calculate the curvature
-    %w(j) = w(j-1) + delta / s(j);
-    w(j) = Hw(z,pL,pH,s(j));
     
-    %Now we can calculate the directional vector associated with the motion
-    nx(j,:) = nx(j-1,:) + s(j) * w(j);
-    nx(j,:) = nx(j,:) / norm( nx(j,:) );
+    %Good one, we have dudt for the future, but calculate the velocity now,
+    %given we now know the change velocity
+    au(j,:) = au(j-1,:) + ( dudt(j,:) + dudtn(j,:) ) / 2 * ( t(j) - t(j-1) );
     
-    w
-    
-    %Finally, calculate the new position from the old position, using this
-    %directional vector
-    %Iterate over all degrees of freedom
-    for i=1:dof
-       x(j,i) = random('norm',x(j-1,i) + s(j) * nx(j,i), s(j)*sd(1)); 
-    end
-    
+    %Finally, calculate the curren position
+    ax(j,:) = ax(j-1,:) + au(j,:) * ( t(j) - t(j-1) );
     
 end
 
-DN = Data(D.T,x,D.K,D.S);
+%Now, write the data object
+DN = Data(t,ax,D.K,D.S);

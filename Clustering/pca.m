@@ -14,7 +14,7 @@
 function [TD TV MN] = pca(X,userComp)
 
 %Determine the dimension of X and the number of observations
-[n dim] = size(X);
+[~, dim] = size(X);
 
 
 %Calculate the mean in each dimension
@@ -22,7 +22,7 @@ MN = mean(X,1);
 
 %Subtract from each dimension the mean
 for i=1:dim
-    X(:,i) = X(:,i) - MN(i);
+    X(:,i) = ( X(:,i) - MN(i) );
 end
 
 %Calculate the covariance matrix for the dimensions
@@ -35,15 +35,10 @@ cv = cov(X);
 %covariance matrix should always have dim real eigenvalues (I think...)
 [evector jordan] = eig(cv);
 
-%The vector of eigenvalues will have length dim
-evalue = zeros(1,dim);
-
 %Convert the Jordan canonical form into a vector of eigenvalues, since I
 %believe the eigenvalues will always be real (and exist). The weighting of
 %each dimension will be the eigenvalue
-for k=1:dim
-    evalue(k) = jordan(k,k);
-end
+evalue = diag(jordan);
 
 %Flip the eigenvector and eigenvalue vector since we want the eigenvalues
 %in order from largest to smallest

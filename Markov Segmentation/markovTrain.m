@@ -1,11 +1,3 @@
-%Training:
-%1. Collect LD Points from files
-%2. Determine centroids
-%3. Determine indices
-%4. Train Inner Markov Model (Baum-Welch)
-%5. Estimate Outer Markov Model (Viterbi Estimation)
-%6. Write Markov Models to file
-
 %This function will retrieve a list of procedures from file and from these
 %procedures train a Markov Model which will be used to segment and classify
 %further procedures performed
@@ -16,32 +8,25 @@ function status = markovTrain()
 %Indicate that the procedure is not finished
 status = 0;
 
-%Create an organizer to write data to file
+%Organizer for writing data to file
 o = Organizer();
-
-%Read all procedural records from file (time, dofs, task, skill)
-D = readRecord();
-%Create a collection of parameters in which to store parameters
+%Create a parameter collection to store parameters
 PC = ParameterCollection();
 
+%Read all procedural records from file
+D = readRecord();
 %The number of procedures is the length of the cell array D
-procs = length(D);
+numProc = length(D);
 
-%Determine the maximum task number and maximum skill level
+%Determine the maximum task number
 maxTask = calcMax(D,'Task');
-% maxSkill = calcMax(D,'Skill');
 
-%Determine the total number of clusters we will have available
-%Determine the clustering parameters
-CP = PC.get('CP');
-kTotal = sum(CP);
+%Determine the number of clusters for each task and total
+centCount = PC.get('NumCentroids');
 
-%The number of components specified by the user for PCA (0 => calculate it)
-UserComp = PC.get('UserComp');
-
-%Initialize Cent to be an empty list of centroids
-Cent = [];
-%Create a list of centroids for each inidividual task
+%Empty list of clustering centroids
+Centroids = [];
+%Cell array of centroids for each task
 taskCent = cell(1,maxTask);
 
 %Initialize the matrix of concatenated, orthogonally transformed procedures
@@ -49,225 +34,128 @@ DO_Cat = Data([],[],[],[]);
 %Hold the concatenation of all instances of a particular task (after PCA)
 DP_Task_Cat = cell(1,5);
 
-%Preallocate the size of our cell array of orthogonally projected data
-DS = cell(1,procs);
-DO = cell(1,procs);
-DP = cell(1,procs);
-DC = cell(1,procs);
+%Preallocate cell arrays of transformed data
+DS = cell(1,numProc);
+DV = cell(1,numProc);
+DO = cell(1,numProc);
+DP = cell(1,numProc);
+DC = cell(1,numProc);
 
 
 
-%P1. Smooth/Remove outliers using Kalman filtering
-for p=1:procs
-    DS{p} = D{p}.kalman(PC.get('Kalman'));
-    plot(DS{p}.X);
-end
+%0. Smooth/Remove outliers using filtering
+for p=1:numProc
+    DS{p} = D{p}.movingAverage(PC.get('Average'),'Gaussian');
+end%for
 
+
+%Add the velocities to the Data
+for p=1:numProc
+    %Initialize empty data with velocity object
+    DV{p} = DS{p};
+    %Iterate over all derivatives up to specified order
+    for d=1:PC.get('Derivative')
+        DV{p} = DV{p}.concatenateDOF( DS{p}.derivative(d) );
+    end%for
+end%for
 
 
 %1. Orthogonal Transformation
-
-%Get all of the orthogonally transformed points for each array
-for p=1:procs
-    %Find the orthogonal projection for each procedural record
-    DO{p} = D{p}.orthogonal(PC.get('Orth'));
+for p=1:numProc
+    DO{p} = DV{p}.orthogonal(PC.get('Orthogonal'));
     %Concatenate along the data objects together
     DO_Cat = DO_Cat.concatenate(DO{p});
-end
+end%for
 
 
-%2. Calculate Principal Component Analysis
-
-%Next, perform a principal component analysis on the concatenated data
-[DP_Cat TransPCA Mn] = DO_Cat.principal(UserComp(1));
+%2. Principal Component Analysis
+[~, Eigen Mean] = DO_Cat.pca(PC.get('NumComponents'));
 
 
 %3. Apply calculated Principal Component Analysis
-
-%Transform the unconcatenated data using the tranformation from PCA
-for p=1:procs
-    %Perform the transformation for the principal component analysis
-    %separately on each procedure
-    DP{p} = DO{p}.pcaTransform(TransPCA,Mn);
-end
+for p=1:numProc
+    DP{p} = DO{p}.pcaTransform(Eigen,Mean);
+end%for
 
 
 %4. Group the procedures into cells by task
+DP_Task = byTask(DP);
+%DP_Task{task}{count}
 
-%Now, group the records by task, rather than as one big thing
-DP_Task = motionSequenceByTask(DP);
 
-
-%5. Concatenate all groups of the same task together, to obtain one cell
-%for each task (over all procedures)
-
-%Concatenate all instances of each task together
+%5. Concatenate all groups of same task together
 for t=1:maxTask
     %Create the blank data object
     DP_Task_Cat{t} = Data([],[],[],[]);
     %Iterate over all instances of the task
     for i = 1:length(DP_Task{t})
-        %Concatenate this particular instance with all previous instances
         DP_Task_Cat{t} = DP_Task_Cat{t}.concatenate(DP_Task{t}{i});
-    end
-end
+    end%for
+end%for
 
 
-%6. Perform clustering for each task separately
+%6. Calculate weighting for each dimension in clustering
+W = ones(1,size(Eigen,2));
 
-%Uniform weighting for each DOF appears to work best
-W = ones(1,size(TransPCA,2));
 
-%Iterate over each task
+%7. Perform clustering for each task separately
 for t=1:maxTask
     %For each task calculate the centroids using the w-means algorithm
-    [~, taskCent{t}] = DP_Task_Cat{t}.wmeans(CP(t),W);
+    [~, taskCent{t}] = DP_Task_Cat{t}.wmeans(centCount(t),W);
     %Concatenate with the list of centroids
-    Cent = cat(1,Cent,taskCent{t});
-end
+    Centroids = cat(1,Centroids,taskCent{t});
+end%for
 
 
-%7. Write the data we have collected to file
-
-%Write the centroids to file for clustering later
-o.write('Cent',Cent);
-%Write the weighting to each file associated with each dimension
+%8. Write the data we have collected to file
+o.write('Centroids',Centroids);
 o.write('Weight',W);
-%Write the transformation for pca and lda to file
-o.write('TransPCA',TransPCA);
-% o.writeCell('TransLDA',TransLDA);
-%Write the mean of each dof to file for the pca or lda transformation
-o.write('Mn',Mn);
+o.write('Eigen',Eigen);
+o.write('Mean',Mean);
 
 
-%8. Perform clustering for each procedure, using the calculated cluster
-%centroids
-
-%Now, using the centroids, determine the index of each projected point
-%Go through all procedures again
-for p=1:procs
+%9. Perform clustering for each procedure, using cluster centroids
+for p=1:numProc
     %Determine the cluster to which the point belongs (ie observation)
-    DC{p} = DP{p}.findCluster(Cent,W);
-end
+    DC{p} = DP{p}.findCluster(Centroids,W);
+end%for
 
 
+%10. Recover the dofs from the cell array Data objects
+[~, XC, KC, ~] = DataCell(DC);
 
 
-
-
-
-
-
-%And determine the sequence of motions for each task
-%(task, taskCount (specific), point (cluster))
-DC_Task = motionSequenceByTask(DC);
-
-%Determine the sequence of motions for each task at each skill level
-%(task, skill, taskCount (skill & task specific), point (cluster))
-% DC_Skill = motionSequenceBySkill(DC);
-
-%Recover the dofs from the cell array Data objects
-[TC_Task XC_Task KC_Task SC_Task] = DataCell(DC_Task);
-% [TC_Skill XC_Skill KC_Skill SC_Skill] = DataCell(DC_Skill);
-
-%Determine the sequence of tasks for each procedure (procedure, point (task))
-K_Task = taskSequenceConvert(DC);
-
-
-%For each task, create a Markov Model
-MTask = cell(1,maxTask);
-
-%Iterate over all tasks
-for t=1:maxTask
-    
-    %Calculate the clusters corresponding to the current task
-    currClust = 1 + sum(CP(1:t)) - CP(t) : sum(CP(1:t));
-    
-    %Initialize the parameters of the model
-    EstPi = ones(1,kTotal)/kTotal;
-    EstPi(currClust) = ones(1,length(currClust));
-    
-    EstA = ones(kTotal)/kTotal;
-    EstA(currClust,currClust) = ones(length(currClust));
-    
-    EstB = eye(kTotal) + ones(kTotal)/kTotal;
-    
-    %Now, normalize the parameters (as required by Markov Models)
-    EstPi = normr(EstPi);
-    EstA = normr(EstA);
-    EstB = normr(EstB);
-    
-    %Create an inner Markov Model, with the estimated parameters
-    MTask{t} = MarkovModel(strcat('Task',num2str(t)),EstPi,EstA,EstB);
-    
-    %Ensure that no model is ruled out by an unlucky cluster, so ensure
-    %that every model can produce every sequence with non-zero probability
-    MTask{t} = MTask{t}.estimate(XC_Task{t},XC_Task{t},EstPi,EstA,EstB);
-    
-    %Write the Markov Model to file
-    MTask{t}.write();
-    
-end
-
-
-%Create the Procedure Markov Model to govern transitions between tasks
-MProc = MarkovModel('Proc',0,0,0);
-
-%Initialize the parameters for the procedure Markov Model
-%Always start in task 1
+%11. Estimate the initial state vector
 EstPi = zeros(1,maxTask);
-EstPi(1) = 1;
+EstPi(1) = 1;   %Always start in task 1
 
-%Assume that the sensible tasks are most likely to occur
+
+%12. Estimate the task transition matrix
 EstA = PC.get('Sense');
 
-%Use the same model of misclassification as the Task Markov Models
-EstB = eye(maxTask) + ones(maxTask)/maxTask;
 
-%Now, normalize the parameters (as required by Markov Models)
+%13. Estimate the observation probability matrix
+EstB = ones(maxTask,sum(centCount))/maxTask;
+
+
+%14. Ensure that all of the matrices are normalized (required by MMs)
 EstPi = normr(EstPi);
 EstA = normr(EstA);
 EstB = normr(EstB);
 
-%Ensure this model can produce every sequence with non-zero probability
-MProc = MProc.estimate(K_Task,K_Task,EstPi,EstA,EstB);
 
-%And write this estimation of parameters to file
+%15. Estimate the Markov Model using the estimates of matrices
+MProc = MarkovModel('Markov',0,0,0);
+MProc = MProc.estimate(XC,KC,EstPi,EstA,EstB);
 MProc.write();
 
 
-
-
-
-
-
-
-
-% %For each skill on each task, create a Markov Model, using X_Skill
-% MSkill = cell(maxSkill,maxTask);
-%
-% %Iterate over all skill-levels
-% for s=1:maxSkill
-%     %Iterate over all tasks
-%     for t=1:maxTask
-%         %Create a blank skill Markov Model, specifying only the name
-%         MSkill{s,t} = MarkovModel(strcat('Skill',num2str(s),'Task',num2str(t)),0,0,0);
-%         %Estimate the parameters of the model using the estimate function.
-%         %Ensure that no model is ruled out by an unlucky cluster, so ensure
-%         %that every model can produce every sequence with non-zero probability
-%         MSkill{s,t} = MSkill{s,t}.train(XC_Skill{s,t},XC_Skill{s,t},indexMember(XC_Skill{t},kTotal),zeros(kTotal),ones(kTotal)/kTotal);
-%         %And write this Markov Model to file
-%         MSkill{s,t}.write();
-%     end
-% end
-
-
-
-
 %Clear the objects now that we are done with it
-clear o; clear D; clear PC; clear MTask; clear MProc;
-% clear MSkill;
+clear o;
+clear D;
+clear PC;
+clear MProc;
 
 %Indicate this function is complete
-status=1;
+status = 1;
 

@@ -1,15 +1,11 @@
 %This function will, given a vector of dofs, convert it into a 4x4 transformation matrix
 
 %Parameter X: The vector of dofs
-%Parameter Reg: A registration matrix
-%Parameter Rot: A rotation matrix
+%Parameter Trans1: A pre-multiplication transformation
+%Parameter Trans2: A post-multiplication transformation
 
 %Return A: The transformation matrix resulting from the dofs
-function A = dofToMatrix(X,Reg,Rot)
-
-%Ok, so first, we know that we have eight degrees of freedom:
-%x,y,z,q1,q2,q3,q4,status
-dof=8;
+function A = dofToMatrix(X,Trans1,Trans2)
 
 %And we create a 4x4 matrix
 A = eye(4);
@@ -22,12 +18,11 @@ A(3,4) = X(3);  %z
 %Inser the rotation matrix
 A(1:3,1:3) = quatToMatrix(X(4:7));
 
-%If a rotation transform is provided, then apply it. Note that no rotation
-%corresponds to the needle in the [-1 0 0] direction.
+%Apply the post-multiplication transformation
 if (nargin > 2)
-   A = A / Rot; 
+   A = A / Trans2; 
 end
-%If a registration transform is provided, then apply it
+%Apply the pre-multiplication transformation
 if (nargin > 1)
-   A = Reg \ A;
+   A = Trans1 \ A;
 end

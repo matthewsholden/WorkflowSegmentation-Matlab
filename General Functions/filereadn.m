@@ -16,23 +16,27 @@ c = 1;
 ix = 0;
 %Initialize the first data string
 currStr = '';
+%Initialize the cell array of characters
+data = cell(1,1);
 
 %Now go through all characters
 while (c < length(rawData))
     %Test if the character is a new line and if it is, move on to the next
     %string
-    if (rawData(c) == 13)
+    if (rawData(c) == 13 || rawData(c) == 10)
         ix = ix + 1;
         data{ix} = currStr;
         currStr = '';
         %For some reason each newline character is read by Matlab as two
         %newline characters
-        c = c + 1;
+        if (rawData(c) == 13)
+            c = c + 1;
+        end%if
     else
         %Otherwise append the character to the current string
         currStr = [currStr, rawData(c)];
-    end
+    end%if
     
     %Increment our count c
     c = c + 1;
-end
+end%while

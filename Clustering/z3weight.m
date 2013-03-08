@@ -28,8 +28,7 @@ end
 %Compute the standard deviation after zeroing any insignificant variances
 
 
-%Now, compute the measure M from our variance and range. I don't know where
-%the factor of 12 comes into play, but it does apparently...
+%Now, compute the measure M from our variance and range
 M = 12 * vr ./ (rn .^ 2);
 
 %Calculate the index of the minimum value of M

@@ -20,7 +20,7 @@ if (userComp > 0)
     return;
 end
 
-%Otherwise, check to see we the acceleration is negative
+%Otherwise, check to see when the acceleration is negative
 
 %Start the feature vector as just the first eigenvector, since this is
 %guaranteed to be part of the feature vector

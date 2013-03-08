@@ -9,7 +9,7 @@
 %Parameter A: A matrix of state transitions
 %Parameter B: A matrix of observation probabilities for each state
 
-%Return stateProb: The state optimized probability that the sequence of
+%Return stateProb: The state optimized log probability that the sequence of
 %observations occurred
 %Return stateSeq: The most likely sequence of states to have produced the
 %observed sequence of observations
@@ -20,8 +20,7 @@ n = length(obs);
 
 %If there are no observations, then return [1 []]
 if ( n == 0 )
-   stateProb = 1;
-   stateSeq = [];
+   [stateProb stateSeq] = max(log(pi));
    return;
 end
 
@@ -29,20 +28,25 @@ end
 delta = zeros(n,length(A));
 psi = zeros(n,length(A));
 
+%Calculate the log of everything such that we can use addition, rather than
+%multiplication to calculate probabilities such that we do not get
+%ridiculously small numbers. Avoid rounding errors.
+logPi = log(pi);    logA = log(A);  logB = log(B);
+
 %First, initialize delta using the initial conditions provided by the
 %initial state distribution
-delta(1,:) = pi .* B(:,obs(1))';
-psi(1,:) = zeros( size(pi) );
+delta(1,:) = logPi + logB(:,obs(1))';
+psi(1,:) = zeros( size(logPi) );
 
 %Now, recurse over all time
 for t = 2:n
    %Calculate the best delta for the next step
    
    %First, calculate the best i for each j
-   [maxProb maxIndex] = max( bsxfun(@times,delta(t-1,:)',A) );
+   [maxProb maxIndex] = max( bsxfun(@plus,delta(t-1,:)',logA) );
    
    %Now, calculate delta and psi
-   delta(t,:) = maxProb .* B(:,obs(t))';
+   delta(t,:) = maxProb + logB(:,obs(t))';
    psi(t,:) = maxIndex;
     
 end

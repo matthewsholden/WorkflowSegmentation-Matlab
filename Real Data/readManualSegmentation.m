@@ -12,7 +12,7 @@
 function [T K] = readManualSegmentation(fileName,proc)
 
 %Our file will be in the format:
-%Practice 1     Practice 2      Trial 1     Trial 2
+%Trial 1     Trial 2      Trial 3     Trial 4
 %  T  K           T   K          T  K        T  K
 
 %First, convert the proc specification into a number, so we can read the

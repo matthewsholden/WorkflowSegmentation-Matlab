@@ -3,16 +3,15 @@
 
 classdef ParameterCollection
     
-    %A list of all of the parameters we need to store
+    %A list of all of the variables we need to store
     properties (SetAccess = private)
-        %A cell array of parameters, noting that we cannot sort, add,
-        %remove parameters at all
+        %A cell array of parameters
         Params;
-        
         %A cell array to readily associate names with indices
         paramNames;
-        
-    end
+        %The number of parameters
+        numParam;
+    end%properties
     
     
     %Methods for reading, setting and accessing the parameters
@@ -20,81 +19,35 @@ classdef ParameterCollection
         
         %Our constructor will start by reading each parameter from file
         function P = ParameterCollection()
+            
             %Create an organizer object to read from file
             o = Organizer();
             
+            %Read the list of parameters from file
+            paramFile = filereadn('Parameter');
+            P.numParam = length(paramFile);
+            
             %Create params as a cell array of parameter objects
-            P.Params = cell(1,17);
-            P.paramNames = cell(1,17);
+            P.Params = cell( size(paramFile) );
+            P.paramNames = cell( size(paramFile) );
             
-            %If we use getters and setters, we won't be affected if we just
-            %numbers to reference, because each number will have an
-            %associated name, so we can search by name
-            
-            %Transitions
-            P.Params{1} = Parameter('Allow',o.read('Allow'));
-            P.Params{2} = Parameter('Sense',o.read('Sense'));
-            P.Params{3} = Parameter('Next',o.read('Next'));
-            
-            %Transformations
-            P.Params{4} = Parameter('Orth',o.read('Orth'));
-            P.Params{5} = Parameter('TransPCA',o.read('TransPCA'));
-            P.Params{6} = Parameter('TransLDA',o.readAll('TransLDA'));
-            P.Params{7} = Parameter('Mn',o.read('Mn'));
-            
-            %Clustering
-            P.Params{8} = Parameter('CP',o.read('CP'));
-            P.Params{9} = Parameter('Cent',o.read('Cent'));
-            P.Params{10} = Parameter('End',o.read('End'));
-            P.Params{11} = Parameter('Weight',o.read('Weight'));
-            
-            %Thresholding
-            P.Params{12} = Parameter('TP',o.read('TP'));
-            P.Params{13} = Parameter('TP_Opt',o.read('TP_Opt'));
-            
-            %Principal Component Analysis
-            P.Params{14} = Parameter('UserComp',o.read('UserComp'));
-            
-            %Smoothing
-            P.Params{15} = Parameter('Kalman',o.read('Kalman'));
-            P.Params{16} = Parameter('Gauss',o.read('Gauss'));
-            P.Params{17} = Parameter('Fourier',o.read('Fourier'));
-            
-            %Keep a cell array of names such that each name can be readily
-            %associated with an index
-            P.paramNames{1} = 'Allow';
-            P.paramNames{2} = 'Sense';
-            P.paramNames{3} = 'Next';
-            
-            P.paramNames{4} = 'Orth';
-            P.paramNames{5} = 'TransPCA';
-            P.paramNames{6} = 'TransLDA';
-            P.paramNames{7} = 'Mn';
-            
-            P.paramNames{8} = 'CP';
-            P.paramNames{9} = 'Cent';
-            P.paramNames{10} = 'End';
-            P.paramNames{11} = 'Weight';
-            
-            P.paramNames{12} = 'TP';
-            P.paramNames{13} = 'TP_Opt';
-            
-            P.paramNames{14} = 'UserComp';
-            
-            P.paramNames{15} = 'Kalman';
-            P.paramNames{16} = 'Gauss';
-            P.paramNames{17} = 'Fourier';
-            
-        end
+            %Create the cell array of parameter objects and parameter names
+            for p=1:P.numParam
+                P.Params{p} = Parameter( paramFile{p}, o.read(paramFile{p}) );
+                P.paramNames{p} = paramFile{p};
+            end%for
+
+        end%function
         
-        %We also want to be able to set the parameters, if we get new
-        %information
+        
+        %Set the parameter value
         function P = set(P,name,value)
             %Determine the number of the parameter we wish to set
             setNum = P.search(name);
             %And set this numbered parameter to the value
             P.Params{setNum}.setValue(value);
-        end
+        end%function
+        
         
         %Get what the value of the parameter is
         function value = get(P,name)
@@ -102,34 +55,37 @@ classdef ParameterCollection
             getNum = P.search(name);
             %Set value to the value of this parameter
             value = P.Params{getNum}.Value;
-        end
+        end%function
         
-        %Read the parameter to file
+        
+        %Read the parameter from file
         function P = read(P,name)
+            o = Organizer();
+            %Determine the number of the parameter we wish to read
+            readNum = P.search(name);
             %Read the parameter for the name from file
-            P = o.read(name);
-        end
+            P.Params{readNum} = o.read(name);
+        end%function
+        
         
         %Write the parameter to file
         function P = write(P,name)
+            o = Organizer();
             %Determine the number of the parameter we wish to write
             writeNum = P.search(name);
             %Set value to the value of this parameter
-            P = o.write(name,P.Params{writeNum}.Value);
-        end
+            P = o.write(name, P.Params{writeNum}.Value );
+        end%function
         
-        
-        
-        %We want a private method that we can use to find the variable
-        %associated with the given input
+                
+        %Find the number associated with the inputted parameter name
         function paramNum = search(P,name)
            %The the index of the parameter corresponding to the specified
            %name
            paramNum = find( strcmp(name,P.paramNames) );
-        end
+        end%function
         
         
-        
-    end
+    end%function
     
-end
+end%function

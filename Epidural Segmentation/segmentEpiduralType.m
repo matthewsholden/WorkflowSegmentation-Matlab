@@ -25,33 +25,32 @@ trialArray = trialMatrix(~~trialMatrix);
 subjArray = subjMatrix(~~subjMatrix);
 subjNum = length(subjArray);
 
-%NOTE: K = 295 is a good parameter for the Markov Model. This is good! That
-%means we get a total of 300 clusters when we add the end of task clusters.
-
 %First, write all of our data to file, except the first procedure
 for i=2:subjNum
     NDITrackToRecord(subjArray(i),['Trial',num2str(trialArray(i))],skill,technique);
 end
 
-disp('Procedure files created');
+%disp('Procedure files created');
 
 %Iterate over all subjects (leave-one-out method)
 for subj = 1:subjNum
     
     %Now, train the Markov model algorithm
-    markovTrain();
+    markovTrainLDA();
     
-    disp('Algorithm trained');
+    %disp('Algorithm trained');
     
     %Write the test procedure to file
     NDITrackToRecord(subjArray(subj),['Trial',num2str(trialArray(subj))],skill,technique);
     
-    disp('Test procedure file created');
+    %disp('Test procedure file created');
     
+    %tic;    
     %Perform a Markov Model task segmentation on the test procedure
     MD = markovSegment(subjNum);
+    %toc;
     
-    disp('Procedure segmented');
+    %disp('Procedure segmented');
 
     %Now, we shall write the data we have acquired to the screen and
     %store it in an array
@@ -71,7 +70,7 @@ for subj = 1:subjNum
     %Read the current procedure from file
     NDITrackToRecord(subjArray(subj),['Trial',num2str(trialArray(subj))],skill,technique);
     
-    disp('Training procedures organized');
+    %disp('Training procedures organized');
     
     %Clear the MarkovData object
     clear MD;

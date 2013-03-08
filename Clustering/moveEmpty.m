@@ -1,20 +1,13 @@
-%This function will be responsible for reviving empty clusters. This will
-%be accomplished by making the centroid of any empty cluster to be the
-%point that is farthest from its cluster centroid.
+%This function will revive empty clusters by making its new centroid the
+%point farthest from all other centroids
 
-%Parameter X: A matrix of points in our space that we want to cluster
-%Parameter C: A matrix of cluster centroids in our space
-%Parameter dis: A matrix of weighted distances from each point to each
-%centroid
-%Parameter ix: The cluster index associated witheach point in our space
-%Parameter numMember: The number of members each cluster has (we are
-%particularly interested in clusters with zero members)
+%Parameter X: Matrix of points in our space that we want to cluster
+%Parameter cent: Matrix of cluster centroids in our space
+%Parameter numMember: Number members for each cluster (ie some have zeros)
 
-%Return C: A matrix of cluster centroids after we have relocated the empty
-%clusters
-%Return empty: Whether or not there were any empty clusters which we had to
-%relocate
-function [C empty] = moveEmpty(X,C,dis,ix,numMember)
+%Return cent: Matrix of cluster centroids after relocating empty clusters
+%Return empty: Whether or not empty clusters were relocated
+function [cent empty] = moveEmpty(X,cent,numMember)
 
 %Determine the number and dimension of our points in space
 [n dim] = size(X);
@@ -25,28 +18,16 @@ empty = false;
 %Iterate over all clusters without members
 for j=find(~numMember)
     
-    %If the cluser does not have any members, determine the point
-    %farthest from its cluster
-    farthest = 1;
-    farDist = 0;
+    %Calculate the centroid-point distances
+    centDis = interDistances( X, cent, W);
     
-    %Iterate over each point
-    for i=1:n
-        %Determine the point farthest from its cluster
-        if (dis(i,ix(i)) > farDist)
-            farthest = i;
-            farDist = dis(i,ix(i));
-        end
-    end
+    %Reassign centroid to be furthest point from all other centroids
+    [~, farthest] = max( min( centDis, [], 2 ) );
     
-    %Determine the largest distance and assign the cluster to be at
-    %the corresponding point
-    C(j,:) = X(farthest,:);
-    
-    %Replace the index of this point such that no more empty clusters
-    %are sent to this point
-    ix(farthest) = j;
+    %Reassign centroid to be the farthest point from previous centroid
+    cent(j,:) = X(farthest,:);
     
     %Indicate that there was an empty clusters
     empty = true;
-end
+    
+end%for
