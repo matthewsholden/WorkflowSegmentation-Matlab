@@ -159,17 +159,17 @@ classdef Data
         %Filter the entire data set using Fourier low-pass filtering
         function DS = fourier(D,Param,filterName)
             %Apply the Fourier low-pass filtering algorithm
-            DS = fourierFilter(D,Param(1),filterName);
+            DS = fourierFilter(D,Param(1),'Hat');
         end
         
          %Filter translations using Fourier low-pass filtering
-        function DS = fourierTrans(D,Param,Q,filterName)
+        function DS = fourierTrans(D,Param,Q)
             %Extract the components that are translations
             XT = D.X(:,~Q);
             %Construct the corresponding Data object
             DT = Data(D.T,XT,D.K,D.S);
             %Apply the Fourier low-pass filtering algorithm
-            DTS = fourierFilter(DT,Param(1),filterName);
+            DTS = fourierFilter(DT,Param(1),'Hat');
             %Add the rotational components back
             XS(:,~Q) = DTS.X;
             XS(:,~~Q) = D.X(:,~~Q);

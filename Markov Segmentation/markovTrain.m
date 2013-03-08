@@ -57,21 +57,11 @@ DC = cell(1,procs);
 
 
 
-%P1. Remove all outliers in the data
-
-%Remove outliers from each procedure individually
+%P1. Smooth/Remove outliers using Kalman filtering
 for p=1:procs
-    DS{p} = D{p}.replaceOutliers(PC.get('Outlier'));
+    DS{p} = D{p}.kalman(PC.get('Kalman'));
+    plot(DS{p}.X);
 end
-
-
-%P2. Smooth the data by limiting the curvature
-
-%Smooth each procedure individually
-for p=1:procs
-    DS{p} = DS{p}.smooth(PC.get('Accel'));
-end
-    
 
 
 
@@ -277,6 +267,7 @@ MProc.write();
 %Clear the objects now that we are done with it
 clear o; clear D; clear PC; clear MTask; clear MProc;
 % clear MSkill;
+
 %Indicate this function is complete
 status=1;
 

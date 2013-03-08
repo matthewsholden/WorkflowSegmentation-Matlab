@@ -24,8 +24,8 @@ classdef ParameterCollection
             o = Organizer();
             
             %Create params as a cell array of parameter objects
-            P.Params = cell(1,12);
-            P.paramNames = cell(1,12);
+            P.Params = cell(1,17);
+            P.paramNames = cell(1,17);
             
             %If we use getters and setters, we won't be affected if we just
             %numbers to reference, because each number will have an
@@ -56,8 +56,9 @@ classdef ParameterCollection
             P.Params{14} = Parameter('UserComp',o.read('UserComp'));
             
             %Smoothing
-            P.Params{15} = Parameter('Outlier',o.read('Outlier'));
-            P.Params{16} = Parameter('Accel',o.read('Accel'));
+            P.Params{15} = Parameter('Kalman',o.read('Kalman'));
+            P.Params{16} = Parameter('Gauss',o.read('Gauss'));
+            P.Params{17} = Parameter('Fourier',o.read('Fourier'));
             
             %Keep a cell array of names such that each name can be readily
             %associated with an index
@@ -80,8 +81,9 @@ classdef ParameterCollection
             
             P.paramNames{14} = 'UserComp';
             
-            P.paramNames{15} = 'Outlier';
-            P.paramNames{16} = 'Accel';
+            P.paramNames{15} = 'Kalman';
+            P.paramNames{16} = 'Gauss';
+            P.paramNames{17} = 'Fourier';
             
         end
         

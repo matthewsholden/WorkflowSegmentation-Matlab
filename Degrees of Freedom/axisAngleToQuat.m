@@ -15,6 +15,3 @@ q(1) = w(1) * sind(angle);
 q(2) = w(2) * sind(angle);
 q(3) = w(3) * sind(angle);
 q(4) = cosd(angle);
-
-
-

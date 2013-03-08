@@ -61,6 +61,11 @@ if (i == 4)
     x(4)=1+R(1,1)+R(2,2)+R(3,3);
 end
 
+%Ensure that the "scalar" fourth component is positive
+%This convention is from Sciavicco & Siciliano Modelling and Control of
+%Robot Manipulations
+x = sign(x(4))*x;
+
 %Now that we have computed the x vector, we obtain the quaternions from a
 %simpe scaling of this x vector
 q=x/norm(x);

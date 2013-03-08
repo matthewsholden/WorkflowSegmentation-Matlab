@@ -7,12 +7,13 @@
 %Return R: The rotation matrix associated with the quaternion
 function R = quatToMatrix(q)
 
-%This algorithm is outlined fairly explicitly in [LandisMarkely 2008]
-
 %First, set the size of R
 R=zeros(3,3);
 
 %Now, we can use the algorithm...
+
+%Normalize quaternion
+q = q / norm(q);
 
 %The first row of the matrix
 R(1,1)=q(1)^2-q(2)^2-q(3)^2+q(4)^2;

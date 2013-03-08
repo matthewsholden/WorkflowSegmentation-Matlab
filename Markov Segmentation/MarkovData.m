@@ -16,6 +16,8 @@ classdef MarkovData
         %Note: We will not use the task field of the data objects here
         %The entirity of the collected data
         D;
+        %The collection of states (determined by the Kalman filter)
+        DS;
         %The entire collection of clusters
         DC;
         %The data collection of tasks
@@ -31,6 +33,7 @@ classdef MarkovData
         nextTask;
         currTask;
         currClust;
+        currState;
         prevTask;
         
         %Keep track of which tasks we have and haven't completed
@@ -53,6 +56,9 @@ classdef MarkovData
         %Keep a parameter collection object in which we can store all of
         %the necessary parameters for our task segmentation
         PC;
+        
+        %Retain the P matrix from the Kalman filtering so we can update
+        kalmanP;
     end
     
     
@@ -76,6 +82,7 @@ classdef MarkovData
             
             %Initialize the data objects to be empty
             M.D = Data(zeros(1,1),zeros(1,8),zeros(1,1),0);
+            M.DS = Data(zeros(1,1),zeros(1,8),zeros(1,1),0);
             M.DC = Data(zeros(1,1),zeros(1,1),zeros(1,1),0);
             M.DK = Data(zeros(1,1),zeros(1,1),zeros(1,1),0);
             
@@ -95,6 +102,9 @@ classdef MarkovData
             
             %Nothing has been completed initially
             M.complete = zeros(1,maxTask);
+            
+            %Initialize the Kalman P matrix to be the identity
+            M.kalmanP = eye(8);
             
             %Create the task and procedure Markov Models
             M = M.initilaizeMMs();
@@ -151,9 +161,21 @@ classdef MarkovData
             M.D = Data(T,X,K,M.D.S);
             
             %Calculate the current cluster
+            [M.currState M.kalmanP] = M.currentState();
+            
+            
+            %Get a reference to the data object for all collected points we
+            %wish to add this new point to
+            T = M.D.T;  X = M.D.X; K = M.D.K;          
+            %Add the newest point to our array of points
+            T(M.count,:) = t;
+            X(M.count,:) = M.currState.X(end,:);
+            K(M.count,:) = 0;
+            M.DS = Data(T,X,K,M.D.S);
+            
+            %Calculate the current cluster
             M.currClust = M.currentCluster();
             
-
 
             %Get a reference to the data object for all collected points we
             %wish to add this new point to
@@ -166,6 +188,7 @@ classdef MarkovData
             
             %Calculate the current task
             M.currTask = M.currentTask();
+            
             
             %Get a reference to the data object for all collected points we
             %wish to add this new point to
@@ -202,6 +225,22 @@ classdef MarkovData
         
         
         
+        %This function will calculate the current state of the motion,
+        %given the observed motion based on Kalman filtering
+        function [S_Current P] = currentState(M)
+            
+            %Get the Kalman filtering parameters
+            kalmanParam = M.PC.get('Kalman');
+            
+            %Create a data object with the relevant data
+            D_Current = M.D;
+            
+            %Apply the Kalman filtering algorithm
+            [S_Current P] = D_Current.kalmanOne(M.DS,M.kalmanP,kalmanParam);
+            
+        end
+        
+        
         
         
         
@@ -218,13 +257,7 @@ classdef MarkovData
             vectHist = minHist:maxHist;
             
             %Create a data object with the relevant data
-            D_Current = Data(M.D.T(vectHist,:),M.D.X(vectHist,:),M.D.K(vectHist,:),M.D.S);
-            
-            %Replace the most recent point if it is an outlier
-            DS_Current = D_Current.replaceOutlierOne(M.PC.get('Outlier'));
-            
-            %Smooth the most recent data point
-            DS_Current = DS_Current.smoothOne(M.PC.get('Accel'));
+            DS_Current = Data(M.DS.T(vectHist,:),M.DS.X(vectHist,:),M.DS.K(vectHist,:),M.D.S);
             
             %Perform an orthogonal transformation on our sequence of observations
             DO_Current = DS_Current.currentOrthogonal(orthParam);

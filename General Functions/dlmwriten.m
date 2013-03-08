@@ -24,4 +24,4 @@ dlmwrite(fileName,sz,D);
 
 %To write the tensor to file, we will break it down into matrices using the
 %recursive method defined below
-dlmwrite(fileName,rawData,'-append','delimiter',D);
+dlmwrite(fileName,rawData,'-append','delimiter',D,'precision','%.6f');
