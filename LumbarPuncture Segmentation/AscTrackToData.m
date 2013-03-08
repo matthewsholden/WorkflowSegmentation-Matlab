@@ -97,7 +97,7 @@ for j=1:numTools
     countX{j} = 0;
     XT{j} = zeros(0,1);
     XTN{j} = zeros(0,1);
-    X{j} = zeros(0,8);
+    X{j} = zeros(0,7);
     
 end%for
 

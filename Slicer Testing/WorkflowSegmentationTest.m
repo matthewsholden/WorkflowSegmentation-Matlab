@@ -34,23 +34,23 @@ for i = 1:numFile
     StyTip_RAS_Cell = AscTrackToData( [ dirPath, '\', currDir(i).name ], toolNames );
     StyTip_RAS = StyTip_RAS_Cell{1};
     
+    %Get the manual task segmentation
+    [TransT TransK] = readManSegST( [ dirPath, '\', currSeg(1).name ], i );
+    K = segToTaskData( StyTip_RAS.T, TransT, TransK );
+    chop = ( K ~= 0 );    
+    
+    T = StyTip_RAS.T(chop);
+    X = StyTip_RAS.X(chop,:);
+    K = K(chop);
+    S = StyTip_RAS.S;
+    
+    %Now create a new data object
+    D_Task = Data( T, X, K, S );    
     
     if ( i > numTrain )
-        D_Test = StyTip_RAS;
+        D_Test = D_Task;
     else
-        %Get the manual task segmentation
-        [TransT TransK] = readManSegST( [ dirPath, '\', currSeg(1).name ], i );
-        K = segToTaskData( StyTip_RAS.T, TransT, TransK );
-        chop = ( K ~= 0 );
-        
-        T = StyTip_RAS.T(chop);
-        X = StyTip_RAS.X(chop,:);
-        K = K(chop);
-        S = StyTip_RAS.S;
-        
-        %Now create a new data object
-        D_Task = Data( T, X, K, S );
-        
+        [ dirPath, '\', currDir(i).name ]
         D_Train{i} = D_Task;
     end%if
     

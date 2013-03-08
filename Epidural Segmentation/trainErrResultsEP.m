@@ -1,10 +1,10 @@
-%This function will perform a task segmentation of LP procedures, and
+%This function will perform a task segmentation of EP procedures, and
 %write the results, along with the parameter values to file
 
 %Parameter outFile: The name of the output file we wish to generate
 
 %Return currAcc: The accuracy of the task segmentation
-function currAcc = segResultsLP(outFile)
+function currAcc = trainErrResultsEP(outFile)
 
 %Create an organizer object
 o = Organizer();
@@ -13,22 +13,27 @@ o = Organizer();
 PC = ParameterCollection();
 
 %Create a cell array of skill levels and techniques
-skills = {'PracticeControl','PracticeControl','TrialControl','TrialControl'};
-techniques = {'L3-4','L4-5','L3-4','L4-5'};
+skills = {'Novice','Novice','Expert','Expert'};
+techniques = {'CL','CR','CL','CR'};
 
 %Perform the segmentation of the LP procedure
 currAcc = [];
-%try
+try
     %Iterate over all skills/techniques
     for i = 1:length(skills)
-        currAcc = padcat(1, currAcc, segmentLumbarType( skills{i}, techniques{i} ) );
+        currAcc = padcat(1, currAcc, trainErrEpiduralType( skills{i}, techniques{i} ) );
     end%for
     %If there are no errors, the number of accuracies is number of skills
     numAcc = length(skills);
-%catch 
+catch
     %Determine the number of accuracies that correctly wrote
     numAcc = size( currAcc, 1 );
-%end%trycatch
+    err = lasterror;
+    disp(err);
+    disp(err.message);
+    disp(err.stack);
+    disp(err.identifier);
+end%trycatch
 
 %Create a cell array of results
 R = cell( numAcc, 2);
@@ -39,7 +44,7 @@ for i = 1:numAcc
 end%for
 
 %Create a cell array of parameters
-A = cell( PC.numParam, size(R,2) );
+A = cell( PC.numParam, 2);
 for i=1:PC.numParam
     A{i,1} = PC.paramNames{i};
     A{i,2} = PC.Params{i}.Value;

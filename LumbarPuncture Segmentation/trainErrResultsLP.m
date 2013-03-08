@@ -4,7 +4,7 @@
 %Parameter outFile: The name of the output file we wish to generate
 
 %Return currAcc: The accuracy of the task segmentation
-function currAcc = segResultsLP(outFile)
+function currAcc = trainErrResultsLP(outFile)
 
 %Create an organizer object
 o = Organizer();
@@ -21,7 +21,7 @@ currAcc = [];
 %try
     %Iterate over all skills/techniques
     for i = 1:length(skills)
-        currAcc = padcat(1, currAcc, segmentLumbarType( skills{i}, techniques{i} ) );
+        currAcc = padcat(1, currAcc, trainErrLumbarType( skills{i}, techniques{i} ) );
     end%for
     %If there are no errors, the number of accuracies is number of skills
     numAcc = length(skills);

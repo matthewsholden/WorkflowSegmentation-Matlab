@@ -59,7 +59,7 @@ X_Interp = velocitySpline( T_Pad(vHist), X_Pad(vHist,:), V_Pad(vHist,:), T_Split
 
 %Perform a submotion transform on the interpolated data
 T_Orth = T_Pad(maxHist);
-X_Orth = Legendre( T_Pad(vHist), X_Pad(vHist,:), order );
+X_Orth = Legendre( T_Split, X_Interp, order );
 X_Orth = reshape( X_Orth, 1, numel(X_Orth) );
 K_Orth = K_Pad(maxHist);
 

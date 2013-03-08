@@ -28,17 +28,18 @@ numStamps = length(trueTask);
 
 
 %Plot the ground truth and automatic task segmentations
-figure;
-hold on;
-plot((1:numStamps) / 20, trueTask, 'k','LineWidth',4);
-plot((1:numStamps) / 20, segTask,'g','LineWidth',4);
-xlabel('Time (s)','FontName','Arial','FontSize',FONT_SIZE);
-ylabel('Task','FontName','Arial','FontSize',FONT_SIZE);
-legend('True Segmentation','Automatic Segmentation','Location','NorthWest');
-hold off;
-set(gca,'YTick',[1 2 3 4 5]);
-set(gca,'YTickLabel',[' Translation'; '    Rotation'; '   Insertion'; 'Verification'; '  Retraction']);
-set(gca,'FontName','Arial','FontSize',FONT_SIZE);
+
+% figure;
+% hold on;
+% plot((1:numStamps) / 20, trueTask, 'k','LineWidth',4);
+% plot((1:numStamps) / 20, segTask,'g','LineWidth',4);
+% xlabel('Time (s)','FontName','Arial','FontSize',FONT_SIZE);
+% ylabel('Task','FontName','Arial','FontSize',FONT_SIZE);
+% legend('True Segmentation','Automatic Segmentation','Location','NorthWest');
+% hold off;
+% set(gca,'YTick',[1 2 3 4 5]);
+% set(gca,'YTickLabel',[' Translation'; '    Rotation'; '   Insertion'; 'Verification'; '  Retraction']);
+% set(gca,'FontName','Arial','FontSize',FONT_SIZE);
 
 
 % Create a matrix with ground-truth segmentations allowing windowing

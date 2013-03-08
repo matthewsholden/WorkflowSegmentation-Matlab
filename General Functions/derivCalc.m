@@ -13,11 +13,6 @@ function D = derivCalc(T,X,order)
 %Calculate the number of points we have
 n = length(T);
 
-if ( n <= 1 )
-    D = zeros( size(X) );
-    return;
-end%if
-
 %Initially, assume the the 'otherwise' (centred difference formula) holds
 left = (1:n) - 1;
 right = (1:n) + 1;

@@ -74,7 +74,7 @@ while (count < D.count)
     
     %Perform a submotion transform on the interpolated data
     T_Orth(count) = T_Pad(maxHist);
-    X_Orth_Curr = Legendre( T_Pad(vHist), X_Pad(vHist,:), order );
+    X_Orth_Curr = Legendre( T_Split, X_Interp, order );
     X_Orth(count,:) = reshape( X_Orth_Curr, 1, numel(X_Orth_Curr) );
     K_Orth(count) = K_Pad(maxHist);
     
