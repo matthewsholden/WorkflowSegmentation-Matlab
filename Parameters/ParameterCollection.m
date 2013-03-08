@@ -52,6 +52,13 @@ classdef ParameterCollection
             P.Params{12} = Parameter('TP',o.read('TP'));
             P.Params{13} = Parameter('TP_Opt',o.read('TP_Opt'));
             
+            %Principal Component Analysis
+            P.Params{14} = Parameter('UserComp',o.read('UserComp'));
+            
+            %Smoothing
+            P.Params{15} = Parameter('Outlier',o.read('Outlier'));
+            P.Params{16} = Parameter('Accel',o.read('Accel'));
+            
             %Keep a cell array of names such that each name can be readily
             %associated with an index
             P.paramNames{1} = 'Allow';
@@ -70,6 +77,11 @@ classdef ParameterCollection
             
             P.paramNames{12} = 'TP';
             P.paramNames{13} = 'TP_Opt';
+            
+            P.paramNames{14} = 'UserComp';
+            
+            P.paramNames{15} = 'Outlier';
+            P.paramNames{16} = 'Accel';
             
         end
         

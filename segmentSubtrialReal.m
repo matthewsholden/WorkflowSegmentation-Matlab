@@ -59,8 +59,8 @@ for subj = 1:subjNum
     %disp(['   Subject ', num2str(Subjects(subj)), ' (Threshold): ', num2str(segmentAccuracy(subjNum,KC)) ])
     %acc(1,subj) = segmentAccuracy(subjNum,KC);
     
-    disp(['   Subject ', num2str(Subjects(subj)), ' (Markov): ', num2str(segmentAccuracy(subjNum,MD.KC)) ])
-    acc(2,subj) = segmentAccuracy(subjNum,MD.KC);
+    disp(['   Subject ', num2str(Subjects(subj)), ' (Markov): ', num2str(segmentAccuracy(subjNum,MD.DK.X)) ])
+    acc(2,subj) = segmentAccuracy(subjNum,MD.DK.X);
     
     %Delete the testing procedure data
     o.deleteNum('Procedure',subjNum);

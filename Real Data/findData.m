@@ -3,15 +3,15 @@
 %manual segmentation in execl. Use an orgnizer object to determine these
 %locations
 
-%Parameter subNum: The number of the subject we are interested in
-%Parameter proc: The type of procedure we are interested in
-%Parameter vrc: Whether or not we have a virtual reality or control group
-%subject
-%Parameter L: Whether the procedure is L4-5 or L3-4
+%Parameter subjNum: The number of the subject we are interested in
+%Parameter trial: The type of procedural we are interested in for the
+%particular subject (ie Trial1, Practice4, Reference1, etc...)
+%Parameter skill: A string indicating skill (ie Novice, Expert)
+%Parameter technique: The name of the procedure (ie TR, TL, CR, CL)
 
 %Return procFile: The file path for the procedure
 %Return segFile: The file path for the manual segmentation
-function [procFile segFile] = findData(subjNum,procType,virtual,lumbarJoint)
+function [procFile segFile] = findData(subjNum,trial,skill,technique)
 
 %First, create an organizer object
 o = Organizer();
@@ -26,20 +26,20 @@ procPath = o.pathName{o.search('Subject')};
 %And concatenate with the root path
 procPath = [o.rootPath, '/', procPath];
 %Now, extend the procedural path given the subject's number and the vrc
-procPath = [procPath, '/', virtual, '/', 'Subject ', subjStr];
+procPath = [procPath, '/', skill, '/', 'Subject ', subjStr];
 
 %Next, determine the path associated with this subject's manual
 %segmentation
-segPath = o.pathName{o.search(['Manual ', lumbarJoint])};
+segPath = o.pathName{o.search('Segmentation')};
 %And concatenate with the root path
 segPath = [o.rootPath, '/', segPath];
 
 
 %Now, file the file names using this provided information
-procName = ['Subject ', subjStr, ' - ', procType, ' - ', lumbarJoint];
+procName = ['Subject ', subjStr, ' - ', trial, ' - ', technique];
 segName = ['Subject ', subjStr];
 
 %Finally, concatenate the file path with the file name
-procFile = [procPath, '/', procName, '.xml'];
+procFile = [procPath, '/', procName, '.txt'];
 segFile = [segPath, '/', segName, '.xlsx'];
 

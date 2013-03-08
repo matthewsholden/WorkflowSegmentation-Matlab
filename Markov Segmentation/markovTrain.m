@@ -19,39 +19,63 @@ status = 0;
 %Create an organizer to write data to file
 o = Organizer();
 
-%Read the procedural record from file (time, dofs, task, skill)
+%Read all procedural records from file (time, dofs, task, skill)
 D = readRecord();
 %Create a collection of parameters in which to store parameters
 PC = ParameterCollection();
 
-%Ok, so the array of times shall only be one dimensional
+%The number of procedures is the length of the cell array D
 procs = length(D);
-%Now, determine the maximum task number for future reference and the
-%maximum skill level
+
+%Determine the maximum task number and maximum skill level
 maxTask = calcMax(D,'Task');
-maxSkill = calcMax(D,'Skill');
+% maxSkill = calcMax(D,'Skill');
+
 %Determine the total number of clusters we will have available
 %Determine the clustering parameters
 CP = PC.get('CP');
-kTotal = sum(CP) + maxTask;
-UserComp = o.read('UserComp');
+kTotal = sum(CP);
+
+%The number of components specified by the user for PCA (0 => calculate it)
+UserComp = PC.get('UserComp');
 
 %Initialize Cent to be an empty list of centroids
 Cent = [];
 %Create a list of centroids for each inidividual task
 taskCent = cell(1,maxTask);
 
-%Let's create an array of all of the LD points from all of the files
-%Initialize the matrix such that we have something to concatenate nothing
+%Initialize the matrix of concatenated, orthogonally transformed procedures
 DO_Cat = Data([],[],[],[]);
-%A cell array of data objects to hold the concatenation of all instances of
-%a particular task
+%Hold the concatenation of all instances of a particular task (after PCA)
 DP_Task_Cat = cell(1,5);
 
-
 %Preallocate the size of our cell array of orthogonally projected data
-DO = cell(1,procs); DP = cell(1,procs); DC = cell(1,procs); DL = cell(1,procs);
+DS = cell(1,procs);
+DO = cell(1,procs);
+DP = cell(1,procs);
+DC = cell(1,procs);
 
+
+
+%P1. Remove all outliers in the data
+
+%Remove outliers from each procedure individually
+for p=1:procs
+    DS{p} = D{p}.replaceOutliers(PC.get('Outlier'));
+end
+
+
+%P2. Smooth the data by limiting the curvature
+
+%Smooth each procedure individually
+for p=1:procs
+    DS{p} = DS{p}.smooth(PC.get('Accel'));
+end
+    
+
+
+
+%1. Orthogonal Transformation
 
 %Get all of the orthogonally transformed points for each array
 for p=1:procs
@@ -61,34 +85,31 @@ for p=1:procs
     DO_Cat = DO_Cat.concatenate(DO{p});
 end
 
+
+%2. Calculate Principal Component Analysis
+
 %Next, perform a principal component analysis on the concatenated data
 [DP_Cat TransPCA Mn] = DO_Cat.principal(UserComp(1));
-%Then, perform a class-dependent linear discriminant analysis on the
-%concatenated data (hopefully our scatter matrices will be non-singular
-%after the PCA)
-[DL_Cat TransLDA W] = DP_Cat.linear(UserComp(2));
 
-% figure;
-%Transform the unconcatenated data using th tranformation from PCA
+
+%3. Apply calculated Principal Component Analysis
+
+%Transform the unconcatenated data using the tranformation from PCA
 for p=1:procs
     %Perform the transformation for the principal component analysis
     %separately on each procedure
     DP{p} = DO{p}.pcaTransform(TransPCA,Mn);
-    %And for the linear discriminant analysis
-    %DL{p} = DP{p}.ldaTransformTask(TransLDA);
-% 
-%     hold on;
-%     plot3(DL{p}.X(DL{p}.K==1,1),DL{p}.X(DL{p}.K==1,2),DL{p}.X(DL{p}.K==1,3),'.r')
-%     plot3(DL{p}.X(DL{p}.K==2,1),DL{p}.X(DL{p}.K==2,2),DL{p}.X(DL{p}.K==2,3),'.b')
-%     plot3(DL{p}.X(DL{p}.K==3,1),DL{p}.X(DL{p}.K==3,2),DL{p}.X(DL{p}.K==3,3),'.g')
-%     plot3(DL{p}.X(DL{p}.K==4,1),DL{p}.X(DL{p}.K==4,2),DL{p}.X(DL{p}.K==4,3),'.y')
-%     plot3(DL{p}.X(DL{p}.K==5,1),DL{p}.X(DL{p}.K==5,2),DL{p}.X(DL{p}.K==5,3),'.k')
-%     hold off;
-    
 end
+
+
+%4. Group the procedures into cells by task
 
 %Now, group the records by task, rather than as one big thing
 DP_Task = motionSequenceByTask(DP);
+
+
+%5. Concatenate all groups of the same task together, to obtain one cell
+%for each task (over all procedures)
 
 %Concatenate all instances of each task together
 for t=1:maxTask
@@ -101,48 +122,36 @@ for t=1:maxTask
     end
 end
 
-%Calculate the weighting associated with the entire procedure.
-%It seems that uniform weighting works the best...
+
+%6. Perform clustering for each task separately
+
+%Uniform weighting for each DOF appears to work best
 W = ones(1,size(TransPCA,2));
-%W
 
 %Iterate over each task
 for t=1:maxTask
-%     figure
-%     plot3(DL_Task_Cat{t}.X(:,1),DL_Task_Cat{t}.X(:,2),DL_Task_Cat{t}.X(:,3),'.')
     %For each task calculate the centroids using the w-means algorithm
     [~, taskCent{t}] = DP_Task_Cat{t}.wmeans(CP(t),W);
     %Concatenate with the list of centroids
     Cent = cat(1,Cent,taskCent{t});
 end
 
-%Calculate the centroids for the end of task
-EC = endCent(DP_Cat);
 
-%Concatenate all centroids into a single matrix
-Cent = cat(1,Cent,EC);
-
-
-%The end of task centroids will be numbered from (# of non-endTask
-%centroids)-(kTotal)
-End = (kTotal-maxTask+1):(kTotal);
+%7. Write the data we have collected to file
 
 %Write the centroids to file for clustering later
 o.write('Cent',Cent);
 %Write the weighting to each file associated with each dimension
 o.write('Weight',W);
-%Write the end cluster numbers to file to determine if a task is completed
-o.write('End',End);
 %Write the transformation for pca and lda to file
 o.write('TransPCA',TransPCA);
-o.writeCell('TransLDA',TransLDA);
+% o.writeCell('TransLDA',TransLDA);
 %Write the mean of each dof to file for the pca or lda transformation
 o.write('Mn',Mn);
 
 
-
-
-
+%8. Perform clustering for each procedure, using the calculated cluster
+%centroids
 
 %Now, using the centroids, determine the index of each projected point
 %Go through all procedures again
@@ -153,66 +162,100 @@ end
 
 
 
+
+
+
+
+
+
 %And determine the sequence of motions for each task
 %(task, taskCount (specific), point (cluster))
 DC_Task = motionSequenceByTask(DC);
+
 %Determine the sequence of motions for each task at each skill level
 %(task, skill, taskCount (skill & task specific), point (cluster))
-DC_Skill = motionSequenceBySkill(DC);
-%Recover the dofs from the cell array Data objects[T_Task X_Task K_Task S_Task] = DataCell(DC_Task);[T_Skill X_Skill K_Skill S_Skill] = DataCell(DC_Skill);%Determine the sequence of tasks for each procedure
-%(procedure, point (task))
+% DC_Skill = motionSequenceBySkill(DC);
+
+%Recover the dofs from the cell array Data objects
+[TC_Task XC_Task KC_Task SC_Task] = DataCell(DC_Task);
+% [TC_Skill XC_Skill KC_Skill SC_Skill] = DataCell(DC_Skill);
+
+%Determine the sequence of tasks for each procedure (procedure, point (task))
 K_Task = taskSequenceConvert(DC);
 
-%Convert to cell arrays of the data
-[~, XC_Task] = DataCell(DC_Task);
-[~, XC_Skill] = DataCell(DC_Skill);
 
-%We must create the Inner Markov Models, the Outer Markov Model, and the
-%Skill Markov Models
-
-%For each task, create a Markov Model, using X_Task
-MIn = cell(1,maxTask);
+%For each task, create a Markov Model
+MTask = cell(1,maxTask);
 
 %Iterate over all tasks
 for t=1:maxTask
-
+    
     %Calculate the clusters corresponding to the current task
     currClust = 1 + sum(CP(1:t)) - CP(t) : sum(CP(1:t));
     
-    %Estimate the parameters of the model using the estimate function.
+    %Initialize the parameters of the model
     EstPi = ones(1,kTotal)/kTotal;
     EstPi(currClust) = ones(1,length(currClust));
+    
     EstA = ones(kTotal)/kTotal;
     EstA(currClust,currClust) = ones(length(currClust));
+    
     EstB = eye(kTotal) + ones(kTotal)/kTotal;
     
-    %Now, normalize (of course)
-    EstPi = normr(EstPi);   EstA = normr(EstA); EstB = normr(EstB);
+    %Now, normalize the parameters (as required by Markov Models)
+    EstPi = normr(EstPi);
+    EstA = normr(EstA);
+    EstB = normr(EstB);
     
     %Create an inner Markov Model, with the estimated parameters
-    MIn{t} = MarkovModel(strcat( 'Inner',num2str(t) ),EstPi,EstA,EstB);
+    MTask{t} = MarkovModel(strcat('Task',num2str(t)),EstPi,EstA,EstB);
     
     %Ensure that no model is ruled out by an unlucky cluster, so ensure
     %that every model can produce every sequence with non-zero probability
-    MIn{t} = MIn{t}.estimate(XC_Task{t},XC_Task{t},EstPi,EstA,EstB);
+    MTask{t} = MTask{t}.estimate(XC_Task{t},XC_Task{t},EstPi,EstA,EstB);
     
     %Write the Markov Model to file
-    MIn{t}.write();
+    MTask{t}.write();
     
 end
 
 
-%We have the sequence of states. The sequence of observed states does not
-%affect the segmentation, so we do not need to calculate them
-MOut = MarkovModel('Outer',0,0,0);
-MOut = MOut.estimate(K_Task,K_Task,[1 0 0 0 0],PC.get('Sense'),zeros(5));
+%Create the Procedure Markov Model to govern transitions between tasks
+MProc = MarkovModel('Proc',0,0,0);
+
+%Initialize the parameters for the procedure Markov Model
+%Always start in task 1
+EstPi = zeros(1,maxTask);
+EstPi(1) = 1;
+
+%Assume that the sensible tasks are most likely to occur
+EstA = PC.get('Sense');
+
+%Use the same model of misclassification as the Task Markov Models
+EstB = eye(maxTask) + ones(maxTask)/maxTask;
+
+%Now, normalize the parameters (as required by Markov Models)
+EstPi = normr(EstPi);
+EstA = normr(EstA);
+EstB = normr(EstB);
+
+%Ensure this model can produce every sequence with non-zero probability
+MProc = MProc.estimate(K_Task,K_Task,EstPi,EstA,EstB);
+
 %And write this estimation of parameters to file
-MOut.write();
+MProc.write();
+
+
+
+
+
+
+
 
 
 % %For each skill on each task, create a Markov Model, using X_Skill
 % MSkill = cell(maxSkill,maxTask);
-% 
+%
 % %Iterate over all skill-levels
 % for s=1:maxSkill
 %     %Iterate over all tasks
@@ -228,7 +271,12 @@ MOut.write();
 %     end
 % end
 
-%Clear the objects now that we are done with itclear o;clear D;clear PC;clear MIn;clear MOut;clear MSkill;
+
+
+
+%Clear the objects now that we are done with it
+clear o; clear D; clear PC; clear MTask; clear MProc;
+% clear MSkill;
 %Indicate this function is complete
 status=1;
 

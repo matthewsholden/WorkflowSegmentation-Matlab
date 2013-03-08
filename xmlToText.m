@@ -26,7 +26,7 @@
 %This returns the name of the ith attribute node
 
 
-function [T X Task] = xmlToText(fileName)
+function D = xmlToText(fileName)
 
 %Set the status to be zero
 status=0;
@@ -239,8 +239,11 @@ for j=1:length(T)
     
 end
 
+%Take the tranposes
+T = T'; X = X'; Task = Task';
+
 %And write these to file...
-D = Data(T',X',Task',0);
+D = Data(T,X,Task,0);
 writeRecord(D);
 
 

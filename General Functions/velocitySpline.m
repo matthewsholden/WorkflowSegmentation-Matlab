@@ -12,7 +12,7 @@
 function x = velocitySpline(T,X,V,t)
 
 %Calculate the number of point and dofs involved
-[~, dof] = size(X);
+[n, dof] = size(X);
 
 %First, calculate the interval in which we lie
 inv = getInterval3(T,t);
@@ -21,7 +21,7 @@ inv = getInterval3(T,t);
 %interval
 t1=T(inv);        t2=T(inv+1);
 p1=X(inv,:);      p2=X(inv+1,:);
-v1=V(inv,:);    v2=V(inv+1,:);
+v1=V(inv,:);      v2=V(inv+1,:);
 
 %Replicate t1, t2 over all dofs
 t1 = repmat(t1,[1 dof]);

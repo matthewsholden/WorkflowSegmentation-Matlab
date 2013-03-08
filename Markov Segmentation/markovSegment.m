@@ -20,7 +20,7 @@ M = MarkovData(calcMax(D,'Task'), calcMax(D,'Skill'));
 %Determine the number of time steps...
 n = length(T);
 
-figure;
+%figure;
 %Now, go through all time steps and determine the task being executed
 for j=1:n
    t = T(j);
@@ -33,3 +33,4 @@ for j=1:n
    
 end
 
+plot(M.D.X)

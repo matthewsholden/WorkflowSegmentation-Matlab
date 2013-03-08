@@ -30,6 +30,7 @@ if (mix==1)
     end
     
 end
+
 %If mix is 2 then
 if (mix==2)
     x = [xmin xmin; xmax xmax];
@@ -42,8 +43,6 @@ if (mix==2)
     end
     
 end
-
-
 
 %If mix is 3 then
 if (mix==3)

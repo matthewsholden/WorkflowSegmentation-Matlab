@@ -17,14 +17,18 @@ function [T K] = readManualSegmentation(fileName,proc)
 
 %First, convert the proc specification into a number, so we can read the
 %corresponding part of the xls file
-if (strcmp(proc,'Practice1') || strcmp(proc,'Practice3'))
+if (strcmp(proc,'Trial1'))
    position = 1; 
-elseif (strcmp(proc,'Practice2') || strcmp(proc,'Practice4'))
+elseif (strcmp(proc,'Trial2'))
     position = 2;
-elseif (strcmp(proc,'Trial1') || strcmp(proc,'Trial3'))
+elseif (strcmp(proc,'Trial3'))
     position = 3;
-elseif (strcmp(proc,'Trial2') || strcmp(proc,'Trial4'))
+elseif (strcmp(proc,'Trial4'))
     position = 4;
+elseif (strcmp(proc,'Trial5'))
+    position = 5;
+elseif (strcmp(proc,'Trial6'))
+    position = 6;
 end
 
 %Now, read the manual segmentation from file

@@ -26,7 +26,7 @@ hold off;
 %Now, compare the automatically segmented task with the manually segmented
 %task
 right=0;
-wrong =0;
+wrong=0;
 
 %Go through all time steps
 for j=1:length(T)

@@ -6,7 +6,7 @@
 %Parameter r: The axis of rotation from which the rotation matrix shall
 %rotate points
 
-%Return R: The rotation quaternion which the vector describes
+%Return q: The rotation quaternion which the vector describes
 function q = vectorToQuat(v,r)
 
 %First, ensure that v and r are normalized

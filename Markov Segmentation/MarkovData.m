@@ -12,30 +12,25 @@ classdef MarkovData
     %We need an array of data points, with an associated array of time
     %stamps, and a count of the number of time stamps we have
     properties (SetAccess = private)
-        %An array of time stamps
-        T;
-        %A matrix containing the degrees of freedom
-        X;
-        %An array of clusters
-        XC;
-        %The current sequence of clusters
-        XQ;
-        %An array of task classifications of the procedure
-        K;
-        %An array of task classifications at the corresponding time step
-        KC;
+        
+        %Note: We will not use the task field of the data objects here
+        %The entirity of the collected data
+        D;
+        %The entire collection of clusters
+        DC;
+        %The data collection of tasks
+        DK;
         
         %We also need counts of the lengths of all of these things
         %A count of how many time steps we have data from
-        stepCount;  %T and X
-        clustCount; %Cluster and Task
-        seqCount;   %Sequence
-        elapseCount; %Time steps between consecutive projections
+        count;
+        seqCount;
         
         %Keep track of what the current task is and what the previous task
         %was and what the next task should be
         nextTask;
         currTask;
+        currClust;
         prevTask;
         
         %Keep track of which tasks we have and haven't completed
@@ -47,10 +42,10 @@ classdef MarkovData
         
         %The Markov Models representing the different tasks (the inner
         %Markov Models) this is a cell array of Markov Models
-        MIn;
+        MTask;
         %The Markov Model representing the procedure (the outer Markov
         %Model)
-        MOut;
+        MProc;
         %The Markov Models representing the different skills for the
         %different tasks (2D cell array)
         MSkill;
@@ -67,7 +62,7 @@ classdef MarkovData
     
     
     %We need to be able to add data to the object, and classify the
-    %procedure into its task (in particular, determine what task is
+    %procedure into its task (in particular, deterMTaske what task is
     %currently being performed)
     methods
         
@@ -75,26 +70,24 @@ classdef MarkovData
         %number of degrees of freedom, but will not know how many data
         %points will be produced
         function M = MarkovData(maxTask,maxSkill)
-            %Initialize all counts to be zero
-            M.stepCount = 0;
-            M.clustCount = 0;
+            %Initialize count to be zero
+            M.count = 0;
             M.seqCount = 0;
-            M.elapseCount = 0;
             
-            %Initilalize all arrays of data to be zero with only one point
-            %of data
-            M.T = zeros(1,1);
-            M.X = zeros(1,8);
-            M.XC = zeros(1,1);
-            M.XQ = zeros(1,1);
-            M.K = zeros(1,1);
-            M.KC = zeros(1,1);
+            %Initialize the data objects to be empty
+            M.D = Data(zeros(1,1),zeros(1,8),zeros(1,1),0);
+            M.DC = Data(zeros(1,1),zeros(1,1),zeros(1,1),0);
+            M.DK = Data(zeros(1,1),zeros(1,1),zeros(1,1),0);
+            
+            %This object will refer to all parameters we will use
+            M.PC = ParameterCollection();
             
             %Since the first task shall be zero since we cannot assume
             %anyhting about it
             M.nextTask = 0;
             M.currTask = 0;
             M.prevTask = 0;
+            M.currClust = 0;
             
             %Initialize the number of tasks and number of skill levels
             M.maxTask = maxTask;
@@ -103,36 +96,37 @@ classdef MarkovData
             %Nothing has been completed initially
             M.complete = zeros(1,maxTask);
             
-            %Create the inner and outer Markov Models
-            M = M.createMMs();
-            
-            %Create the parameter collection object, reading the parameter
-            %values from file
-            M.PC = ParameterCollection();
+            %Create the task and procedure Markov Models
+            M = M.initilaizeMMs();
         end
         
         
+        
         %This procedure will create the Markov models
-        function M = createMMs(M)
-            %Create cell arrays for the inner and outer Markov Models
-            M.MIn = cell(1,M.maxTask);
-            M.MOut = cell(1,1);
+        function M = initilaizeMMs(M)
             
-            %Create the inner Markov Models...
+            %Create cell array for the task  Markov Models
+            M.MTask = cell(1,M.maxTask);
+            
+            %Iterate over all tasks (one Markov Model for each task)
             for t=1:M.maxTask
-                M.MIn{t} = MarkovModel(strcat('Inner',num2str(t)), 0, 0, 0);
+                
+                %Create the task Markov Models
+                M.MTask{t} = MarkovModel(strcat('Task',num2str(t)), 0, 0, 0);
                 %Read the parameters from file
-                M.MIn{t} = M.MIn{t}.read();
-                %Consider each skill level
-                for s=1:M.maxSkill
-                    M.MSkill{s,t} = MarkovModel(strcat('Skill', num2str(s),'Task', num2str(t)), 0, 0, 0);
-                    M.MSkill{s,t} = M.MSkill{s,t}.read();
-                end
+                M.MTask{t} = M.MTask{t}.read();
+                
+                %                 %Consider each skill level
+                %                 for s=1:M.maxSkill
+                %                     M.MSkill{s,t} = MarkovModel(strcat('Skill', num2str(s),'Task', num2str(t)), 0, 0, 0);
+                %                     M.MSkill{s,t} = M.MSkill{s,t}.read();
+                %                 end
+                
             end
             
-            %And finally create the outer Markov Model
-            M.MOut{1} = MarkovModel('Outer', 0, 0, 0);
-            M.MOut{1} = M.MOut{1}.read();
+            %And finally create the procedure Markov Model
+            M.MProc = MarkovModel('Proc', 0, 0, 0);
+            M.MProc = M.MProc.read();
             
         end
         
@@ -144,27 +138,43 @@ classdef MarkovData
         %noting that a transformation matrix will be provided
         function M = addPoint(M,t,x)
             %Increment the count of time steps
-            M.stepCount = M.stepCount + 1;
-            %Assign the next time stamp to the array
-            M.T(M.stepCount,:) = t;
-            %Assign the dofs to the array of dofs
-            M.X(M.stepCount,:) = x;
+            M.count = M.count + 1;
+            M.seqCount = M.seqCount + 1;
             
-            %Update the sequence of clusters
-            M = M.updateClusters();
+            %Get a reference to the data object for all collected points we
+            %wish to add this new point to
+            T = M.D.T;  X = M.D.X; K = M.D.K;          
+            %Add the newest point to our array of points
+            T(M.count,:) = t;
+            X(M.count,:) = x;
+            K(M.count,:) = 0;
+            M.D = Data(T,X,K,M.D.S);
             
-            %If no sequence has been produced yet, then just return
-            if (M.XQ == 0)
-                return;
-            end
+            %Calculate the current cluster
+            M.currClust = M.currentCluster();
             
-            %Calculate the task currently being executed and adjust the
-            %current task attribute accordingly
-            M = M.calcCurrentTask();
+
+
+            %Get a reference to the data object for all collected points we
+            %wish to add this new point to
+            TC = M.DC.T;  XC = M.DC.X; KC = M.DC.K;  
+            %Add the newest point to our array of points
+            TC(M.count,:) = t;
+            XC(M.count,:) = M.currClust;
+            KC(M.count,:) = 0;
+            M.DC = Data(TC,XC,KC,M.DC.S);
             
-            %Now that we have calculated the task, add it to the task array
-            M.K(M.clustCount) = M.currTask;
-            M.KC(M.stepCount) = M.currTask;
+            %Calculate the current task
+            M.currTask = M.currentTask();
+            
+            %Get a reference to the data object for all collected points we
+            %wish to add this new point to
+            TK = M.DK.T;  XK = M.DK.X; KK = M.DK.K;          
+            %Add the newest point to our array of points
+            TK(M.count,:) = t;
+            XK(M.count,:) = M.currTask;
+            KK(M.count,:) = 0;
+            M.DK = Data(TK,XK,KK,M.DK.S);
             
             %Also, calculate what the next task should be given the current
             %task
@@ -184,13 +194,9 @@ classdef MarkovData
         %and add it (converting to DOFs and then using the addPoint method
         %defined previously)
         function M = addPointMatrix(M,t,A)
-            %First, create a local variable, and use this to store the
-            %array of DOFs, which we have converted from the 4x4
-            %transformation matrix
-            x=matrixToDOF(A);
-            %Now call the add point function using this previously defined
-            %function
-            M = M.addPoint(t,x);
+            %Convert the tranformation matrix to a quaternion, and use this
+            %quternion for the addPoint method
+            M = M.addPoint(t,matrixToDOF(A));
         end
         
         
@@ -201,86 +207,36 @@ classdef MarkovData
         
         %This function is responsible for updating the array of clusters of
         %procedural data
-        function M = updateClusters(M)
+        function C_Current = currentCluster(M)
             
-            %Find the orthogonal transformation parameters
-            Orth = M.PC.get('Orth');
+            %Get the orthogonal transformation parameters
+            orthParam = M.PC.get('Orth');
             
-            %If we have allowed an appropriate number of time steps to
-            %elapse in order for the initial time (where we do not have a
-            %sufficient history of points) then increment the count of
-            %elapsed steps
-            if (M.stepCount > Orth(2) - Orth(1))
-                M.elapseCount = M.elapseCount + 1;
-            end
+            %Calculate the points we will use to determine the spline. minHist
+            %and maxHist indicate the points that are the max and min index.
+            minHist = max(1,M.count - orthParam(2) + 1);    maxHist = M.count;
+            vectHist = minHist:maxHist;
             
-            %Ensure that the sufficient number of time steps have elapsed
-            if (M.elapseCount == Orth(1))
-                
-                %Increment the count of clsuters and sequence
-                M.clustCount = M.clustCount + 1;
-                M.seqCount = M.seqCount + 1;
-                
-                %Calculate the points we will use to determine the spline. minHist
-                %and maxHist indicate the points that are the maximum and minimum
-                %index.
-                minHist = M.stepCount - Orth(2) + 1;    maxHist = M.stepCount;
-                vectHist = minHist:maxHist;
-                
-                %Create a data object with the relevant data
-                D = Data(M.T(vectHist),M.X(vectHist,:),zeros(1,length(vectHist)),0);
-                
-                %Perform an orthogonal transformation on our sequence of observations
-                DO = D.orthogonal(M.PC.get('Orth'));
-                
-                %Perform a pca transform according to the parameters
-                DP = DO.pcaTransform( M.PC.get('TransPCA'), M.PC.get('Mn') );
-                
-                %Then perform a transformation according to the lda
-                %                 DL = DP.ldaTransform( M.PC.get('TransLDA') );
-                
-                %Initialize the cell array of data objects containing
-                %clusters and distances
-                %                 DC = cell(1,M.maxTask);
-                %                 dis = zeros(1,M.maxTask);
-                
-                %Find the cluster to which the transformation belongs,
-                %iterating over all possible transformations
-                %                 for t = 1:M.maxTask
-                %                     [DC{t} dis(t)]= DP{t}.findCluster(M.PC.get('Cent'),M.PC.get('Weight'));
-                %                 end
-                %
-                %                 %Determine the smallest distance
-                %                 [~, mix] = min(dis);
-                %
-                %                 %Determine the smallest distance
-                %                 DC = DC{mix};
-                
-                DC = DP.findCluster(M.PC.get('Cent'),M.PC.get('Weight'));
-                
-                %hold on;
-                %plot3(DP{mix}.X(:,1),DP{mix}.X(:,2),DP{mix}.X(:,3));
-                
-                %Assign the found cluster to the vector of all clusters
-                M.XC(M.clustCount) = DC.X;
-                
-                %Assign this new cluster to the sequence vector of current
-                %clusters
-                M.XQ(M.seqCount) = M.XC(M.clustCount);
-                
-                %If the length of the current vector is longer than retain,
-                %throw away the first entry
-                if (M.seqCount > Orth(5))
-                    %Decrease seqCount
-                    M.seqCount = M.seqCount - 1;
-                    %Throw away the first (least recent) entry
-                    M.XQ = M.XQ(2:end);
-                end
-                
-                %Reset the coutn of elapsed steps
-                M.elapseCount = 0;
-                
-            end
+            %Create a data object with the relevant data
+            D_Current = Data(M.D.T(vectHist,:),M.D.X(vectHist,:),M.D.K(vectHist,:),M.D.S);
+            
+            %Replace the most recent point if it is an outlier
+            DS_Current = D_Current.replaceOutlierOne(M.PC.get('Outlier'));
+            
+            %Smooth the most recent data point
+            DS_Current = DS_Current.smoothOne(M.PC.get('Accel'));
+            
+            %Perform an orthogonal transformation on our sequence of observations
+            DO_Current = DS_Current.currentOrthogonal(orthParam);
+            
+            %Perform a pca transform according to the parameters
+            DP_Current = DO_Current.pcaTransform(M.PC.get('TransPCA'),M.PC.get('Mn'));
+            
+            %Determine the cluster to which the data point belongs
+            DC_Current = DP_Current.findCluster(M.PC.get('Cent'),M.PC.get('Weight'));
+            
+            %Assign the found cluster to the vector of all clusters
+            C_Current = DC_Current.X;
             
         end
         
@@ -291,18 +247,26 @@ classdef MarkovData
         
         %This function will return the current task, given all of the
         %points that were previously added to the object
-        function M = calcCurrentTask(M)
+        function K_Current = currentTask(M)
             %The task at the current time step depends upon the best Markov
-            %Model (inner), scaled by the transition matrix of the outer
+            %Model (task), scaled by the transition matrix of the procedure
             %Markov Model
+            
+            %Calculate the points we will use to determine the spline. minHist
+            %and maxHist indicate the points that are the max and min index.
+            minHist = M.count - M.seqCount + 1;    maxHist = M.count;
+            seqHist = minHist:maxHist;
+            
+            %Get the most recent clusterings
+            XC = M.DC.X(seqHist,:);
             
             %Now, calculate the most likely Markov Model to have reproduced
             %the current sequence
-            [task prob] = bestMarkov(M.XQ,M.MIn,M.getScaling());
+            [task prob] = bestMarkov(XC,M.MTask,M.getScaling());
             %Probability previous sequence was produced by Markov Model
-            [testTask1 testProb1] = bestMarkov(M.XQ(1:end-1),M.MIn,M.getScaling());
+            [testTask1 testProb1] = bestMarkov(XC(1:end-1,:),M.MTask,M.getScaling());
             %Probability current observation was produced by Markov Model
-            [testTask2 testProb2] = bestMarkov(M.XQ(end),M.MIn);
+            [testTask2 testProb2] = bestMarkov(XC(end),M.MTask);
             
             %If the cluster has never appeared before then do not change
             %tasks
@@ -318,7 +282,7 @@ classdef MarkovData
             
             %Multiply the probabilities with the transition probability
             %of going from testTask1 to testTask2
-            scale = M.MOut{1}.getA();
+            scale = M.MProc.getA();
             testProb = testProb1 * testProb2 * scale(testTask1,testTask2);
             
             %Calculate the ratio of probabilities
@@ -326,30 +290,28 @@ classdef MarkovData
             
             %Now, if the probability is less than the threshold probability,
             %clear the cluster sequence and try again. This means that we
-            %have moved onto a new task. The number of clusters and tasks
-            %will be accounted for in our threshold constant.
+            %have moved onto a new task.
             if ( prob == 0 || probRat > 1 )
                 %Since there is a change in tasks, reassign the current
                 %task to be the previous task
                 M.prevTask = M.currTask;
                 %Clear the current sequence (except for the most recent observation)
-                M.XQ = M.XQ(end);
                 M.seqCount = 1;
                 
                 %Calculate the current task again with the cleared sequence
-                [task prob] = bestMarkov(M.XQ,M.MIn,M.getScaling());
+                [task prob] = bestMarkov(M.DC.X(end,:),M.MTask,M.getScaling());
                 
                 %If the probability is zero (ie no allowed transitions)
                 %then ignore transition proability and yield the most
                 %likely unscaled task that is allowed
                 if (prob == 0)
-                    [task prob] = bestMarkov(M.XQ,M.MIn,M.getAllow());
+                    [task prob] = bestMarkov(M.DC.X(end,:),M.MTask,M.getAllow());
                 end
                 
                 %If the proability is still zero, the yield the most likely
                 %unallowed, unscaled task
                 if (prob == 0)
-                    [task prob] = bestMarkov(M.XQ,M.MIn);
+                    [task prob] = bestMarkov(M.DC.X(end,:),M.MTask);
                 end
                 
                 %If the cluster has never appeared before then do not change
@@ -357,17 +319,12 @@ classdef MarkovData
                 if (task == 0)
                     task = M.currTask;
                 end
-                
-                %When we start a task, it means that we haven't completed
-                %it even if we completed it previously (may be undoing it)
-                %so set our completion tensor to zero for the new task
-                M.complete(task) = 0;
+
             end
             
             %The previous task will be replaced by the current task
-            M.currTask = task;
+            K_Current = task;
             
-            %This has calculated the task
         end
         
         
@@ -400,10 +357,10 @@ classdef MarkovData
             %Get a vector of end clusters
             End = M.PC.get('End');
             
-            %So determine if the current cluster is the end cluster for the
+            %So deterMTaske if the current cluster is the end cluster for the
             %any task by iterating over all tasks
             for i = 1:length(End)
-                if ( M.XC(M.clustCount) == End(i) )
+                if ( M.DC.X(M.count) == End(i) )
                     M.complete(i) = 1;
                 end
             end
@@ -422,10 +379,10 @@ classdef MarkovData
             %for the previous task
             if (M.prevTask == 0)
                 %The scaling shall be the initial task distribution
-                scale = M.MOut{1}.getPi();
+                scale = M.MProc.getPi();
             else
                 %First, create a vector of scaling from the outer Markov Model
-                scale = M.MOut{1}.getA();
+                scale = M.MProc.getA();
                 %Consider the transition probabilities from the previous task
                 scale = scale(M.prevTask,:);
             end
@@ -467,77 +424,77 @@ classdef MarkovData
         
         
         
-        %When all is said and done, we can determine the skill level of
-        %each task and from this the skill level of the entire procedure
-        function [S SP SPT] = skillClassify(M)
-            %First, we must convert the sequence of clusters and tasks into
-            %cells such that we can pass them into our motionSequenceByTask
-            %function
-            xc = cell(1,1);        kc = cell(1,1);
-            xc{1} = M.XC;          kc{1} = M.K;
-            
-            %Now, let us break down the tasks using the function we have
-            %already created
-            seqByTask = motionSequenceByTask(xc,kc);
-            
-            %Initiliaze the cell array of probabilities of each Markov
-            %Model for each instance of the task
-            SPT = cell(M.maxSkill,M.maxTask);
-            
-            %Now go through each task and calculate which Markov Model was
-            %the most likely to have produced this task
-            
-            %Iterate over all skill levels
-            for s=1:M.maxSkill
-                %Iterate over all tasks
-                for t=1:M.maxTask
-                    %Iterate over all instances of each task
-                    for i=1:length(seqByTask{t})
-                        %Make the current sequence a cell
-                        xq = seqByTask{t}{i};
-                        %Determine the probability that each skill-level of
-                        %Markov Model from the task produced the results
-                        SPT{s,t}(i) = cell2mat(M.MSkill{s,t}.seqProb(xq));
-                        %Now, since not all sequences are the same length, we will
-                        %weight the probabilities by taking the length root of
-                        %each probability
-                        SPT{s,t}(i) = SPT{s,t}(i) ^ ( 1/ length(xq) );
-                        %But shorter tasks should carry a lesser weight so
-                        %scale by the length
-                        SPT{s,t}(i) = SPT{s,t}(i) * length(xq);
-                    end
-                    %Now, find the combined probability for each skill-task
-                    %pair
-                    SPT{s,t} = prod( SPT{s,t} );
-                end
-                
-            end
-            
-            %Convert the cell array into a matrix and normalize
-            SPT = cell2mat(SPT);
-            
-            %Now we must normalize the columns of such that they sum to one
-            for t=1:M.maxTask
-                SPT(:,t) = SPT(:,t) / sum( SPT(:,t ));
-            end
-            
-            %And the total skill is the expected value of the
-            %skill-levels over all tasks
-            SP = prod(SPT,2);
-            %Now we must normalize the columns of such that they sum to one
-            SP = SP / sum(SP);
-            
-            %The overall skill level is the maximum of the SP, but
-            %if the SP is a NaN (because all of the options are too
-            %unlikely) then return zero (unidentified)
-            if (isnan(SP))
-                S = 0;
-            else
-                S = maxIndex(SP);
-            end
-            
-            
-        end
+%         %When all is said and done, we can deterMTaske the skill level of
+%         %each task and from this the skill level of the entire procedure
+%         function [S SP SPT] = skillClassify(M)
+%             %First, we must convert the sequence of clusters and tasks into
+%             %cells such that we can pass them into our motionSequenceByTask
+%             %function
+%             xc = cell(1,1);        kc = cell(1,1);
+%             xc{1} = M.XC;          kc{1} = M.K;
+%             
+%             %Now, let us break down the tasks using the function we have
+%             %already created
+%             seqByTask = motionSequenceByTask(xc,kc);
+%             
+%             %Initiliaze the cell array of probabilities of each Markov
+%             %Model for each instance of the task
+%             SPT = cell(M.maxSkill,M.maxTask);
+%             
+%             %Now go through each task and calculate which Markov Model was
+%             %the most likely to have produced this task
+%             
+%             %Iterate over all skill levels
+%             for s=1:M.maxSkill
+%                 %Iterate over all tasks
+%                 for t=1:M.maxTask
+%                     %Iterate over all instances of each task
+%                     for i=1:length(seqByTask{t})
+%                         %Make the current sequence a cell
+%                         xq = seqByTask{t}{i};
+%                         %DeterMTaske the probability that each skill-level of
+%                         %Markov Model from the task produced the results
+%                         SPT{s,t}(i) = cell2mat(M.MSkill{s,t}.seqProb(xq));
+%                         %Now, since not all sequences are the same length, we will
+%                         %weight the probabilities by taking the length root of
+%                         %each probability
+%                         SPT{s,t}(i) = SPT{s,t}(i) ^ ( 1/ length(xq) );
+%                         %But shorter tasks should carry a lesser weight so
+%                         %scale by the length
+%                         SPT{s,t}(i) = SPT{s,t}(i) * length(xq);
+%                     end
+%                     %Now, find the combined probability for each skill-task
+%                     %pair
+%                     SPT{s,t} = prod( SPT{s,t} );
+%                 end
+%                 
+%             end
+%             
+%             %Convert the cell array into a matrix and normalize
+%             SPT = cell2mat(SPT);
+%             
+%             %Now we must normalize the columns of such that they sum to one
+%             for t=1:M.maxTask
+%                 SPT(:,t) = SPT(:,t) / sum( SPT(:,t ));
+%             end
+%             
+%             %And the total skill is the expected value of the
+%             %skill-levels over all tasks
+%             SP = prod(SPT,2);
+%             %Now we must normalize the columns of such that they sum to one
+%             SP = SP / sum(SP);
+%             
+%             %The overall skill level is the maximum of the SP, but
+%             %if the SP is a NaN (because all of the options are too
+%             %unlikely) then return zero (unidentified)
+%             if (isnan(SP))
+%                 S = 0;
+%             else
+%                 S = maxIndex(SP);
+%             end
+%             
+%             
+%         end
         
         
     end %Methods

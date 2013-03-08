@@ -9,7 +9,7 @@
 %Return TO: The time stamps of the points corresponding to XO
 %Return XO: The orthognally projected degrees of freedom
 %Return KO: The task and the time stamps corresponding to XO
-function [TO XO KO] = orth(T,X,K,Orth)
+function [TO XO KO] = currentOrth(T,X,K,Orth)
 
 %If necessary, read the parameters for the orthogonal projection
 if (nargin < 4)
@@ -36,45 +36,29 @@ for i=1:(Orth(2)-1)
 end
 
 %Determine the size of the matrix of X
-[n dof] = size(X);
-
-%Calculate the dimension of the lower dimensional space
-dim = ( Orth(4) + 1 ) * dof;
+[n dof] = size(X_Pad);
 
 %Calculate the velocity at each time step for each points
 V_Pad = velocityCalc(T_Pad,X_Pad);
 
-%Initialize the matrices for our orthogonally transformed data
-TO = zeros(n,1);   XO = zeros(n,dim);     KO = zeros(n,1);
+%Calculate the range in time we will use to determine the spline
+minHist = n - Orth(2) + 1; maxHist = n;
+vHist = minHist:maxHist;
 
-%Set the initial count to be
-count = 0;
+%Calculate the times at which the interpolated points will occur
+t = splitInterval(T_Pad(minHist),T_Pad(maxHist),Orth(3))';
 
+%Calculate the value of the degree of freedom at the interp
+%points, using a velocity spline
+x = velocitySpline(T_Pad(vHist),X_Pad(vHist,:),V_Pad(vHist,:),t);
 
-%Iterate over all time steps in the original data
-while (count < n)
-    %Increment the count of total time steps
-    count = count + 1;
-    
-    %Calculate the range in time we will use to determine the spline
-    minHist = count; maxHist = count + Orth(2) - 1;
-    vHist = minHist:maxHist;
-    
-    %Calculate the times at which the interpolated points will occur
-    t = splitInterval(T_Pad(minHist),T_Pad(maxHist),Orth(3))';
-    
-    %Calculate the value of the degree of freedom at the interp
-    %points, using a velocity spline
-    x = velocitySpline(T_Pad(vHist),X_Pad(vHist,:),V_Pad(vHist,:),t);
-    
-    %Perform a submotion transform on the interpolated data
-    TO(count) = T_Pad(maxHist);
-    XO(count,:) = subOrth(t,x,Orth(4));
-    KO(count) = K_Pad(maxHist);
-    
-end
-% 
-% 
+%Perform a submotion transform on the interpolated data
+TO = T_Pad(maxHist);
+XO = subOrth(t,x,Orth(4));
+KO = K_Pad(maxHist);
+
+%
+%
 % %We can call this procedure on the velocities too!
 % if (Orth(6) > 0)
 %     %Create a vector with the derivatie parameter (6) one decreased...

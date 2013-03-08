@@ -135,10 +135,55 @@ classdef Data
         end
         
         
+        %Perform outlier replacement for all points
+        function DS = replaceOutliers(D,Param)
+            %Replace the outliers
+            DS = replaceOutlierAll(D,Param);
+        end
+        
+        %Perform outlier replacement for the most recent point
+        function DS = replaceOutlierOne(D,Param)
+            if ( length(D.T) >= Param(1) )
+            %Replace the outliers
+            XS = replaceOutlier(D.T,D.X,Param(2),Param(3));
+            %Return the sequence with the last point replaced
+            DS = Data(D.T,cat(1,D.X(1:end-1,:),XS),D.K,D.S);
+            else
+                DS = D;
+            end
+        end
+        
+        %Smooth the data for all points
+        function DS = smooth(D,Param)
+            %Smooth the data
+            DS = accelSmoothAll(D,Param);
+        end
+        
+        %Smooth the most recent point
+        function DS = smoothOne(D,Param)
+            if ( length(D.T) >= 3 )
+            %Smooth the point
+            XS = accelSmooth(D.T,D.X,Param(1),Param(2));
+            %Return the sequence with the last point replaced
+            DS = Data(D.T,cat(1,D.X(1:end-1,:),XS),D.K,D.S);
+            else
+                DS = D;
+            end
+        end
+        
         %Perform an orthogonal transformation on our data
         function DO = orthogonal(D,Param)
             %Perform the transform
             [TO XO KO] = orth(D.T,D.X,D.K,Param);
+            %Create the new object storing the orthogonally transformed
+            %data
+            DO = Data(TO,XO,KO,D.S);
+        end
+        
+        %Perform an orthogonal transformation on our data
+        function DO = currentOrthogonal(D,Param)
+            %Perform the transform
+            [TO XO KO] = currentOrth(D.T,D.X,D.K,Param);
             %Create the new object storing the orthogonally transformed
             %data
             DO = Data(TO,XO,KO,D.S);
@@ -184,7 +229,7 @@ classdef Data
         %multiplication. This will be useful for a pca recovery.
         function DT = pcaTransform(D,Trans,Mn)
             %First, for each dimension, subtract off the mean
-            XT = bsxfun(@plus,D.X,Mn);
+            XT = bsxfun(@minus,D.X,Mn);
             
             %Now apply the transformation vector to the data
             XT = (XT * Trans);

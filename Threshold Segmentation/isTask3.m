@@ -19,8 +19,8 @@ function Task = isTask3(x,v,t,in,Entry,Target)
 Task = false;
 
 %Calculate the plane defining the surface of the skin
-n = (Entry - Target)/norm(Entry - Target);
-D = dot(n,Entry);
+D = norm(Entry-Target);
+n = (Entry - Target)/D;
 
 %Now, we must determine:
 %1. Is the needle in the phantom?

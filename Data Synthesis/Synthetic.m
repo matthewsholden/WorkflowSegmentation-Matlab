@@ -37,7 +37,6 @@ dof = size(Key.X,2);
 %output accuracy
 n = round( ( Key.T(Key.count) - Key.T(1) ) / Play(1) );
 
-
 %Initialize the size of the time vector and the DOF matrix
 T=zeros(n,1);
 X=zeros(n,dof);
@@ -79,7 +78,7 @@ end
 D = Data(T,X,K,0);
 
 %Add noise to our data
-D = D.addNoise(X_Bs,X_Wt,X_Mx);
+D = D.addHumanNoise(X_Bs,X_Wt,X_Mx,Human);
 
 %Normalize the quaternions as required
 D = D.normalizeQuaternion(Q);
