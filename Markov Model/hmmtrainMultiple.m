@@ -16,15 +16,16 @@ function [trainPi trainA trainB] = hmmtrainMultiple(seq,initPi,initA,initB,pseud
 %distribution using a Markov Model
 initM = MarkovModel('Initial',initPi,initA,initB);
 
-
 %Train the Markov Model as usual with the unpadded parameters, using cells
 %instead
-if (nargin == 5)
-    pseudoM = MarkovModel('Pseudo',pseudoPi,pseudoA,pseudoB);
-    [trainAP trainBP] = hmmtrain(seq,initM.getAP(),initM.getBP(),'Pseudotransitions',pseudoM.getAP(),'Pseudoemissions',pseudoM.getBP());
-else
-    [trainAP trainBP] = hmmtrain(seq,initM.getAP(),initM.getBP());
+pseudoM = MarkovModel('Pseudo',pseudoPi,pseudoA,pseudoB);
+
+for i =1:length(seq)
+   seq{i} 
 end
+
+
+[trainAP trainBP] = hmmtrain(seq,initM.getAP(),initM.getBP(),'Pseudotransitions',pseudoM.getAP(),'Pseudoemissions',pseudoM.getBP());
 
 
 %Now, decompose the appended matrices into unappended matrices

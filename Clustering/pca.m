@@ -4,16 +4,18 @@
 
 %Parameter X: A matrix of points, where rows corresponds to observations,
 %and columns to dimensions
+%Parameter userComp: The number of principal components we wish to keep
 
 %Return TD: The transformed data into a space in which all of the
 %dimensions hold pertinent information about the data
 %Return TV: The series of vectors over which we project our original data,
 %the transformation vector
 %Return MN: The mean of the data in each dimension
-function [TD TV MN] = pca(X)
+function [TD TV MN] = pca(X,userComp)
 
 %Determine the dimension of X and the number of observations
 [n dim] = size(X);
+
 
 %Calculate the mean in each dimension
 MN = mean(X,1);
@@ -42,32 +44,17 @@ evalue = zeros(1,dim);
 for k=1:dim
     evalue(k) = jordan(k,k);
 end
+
 %Flip the eigenvector and eigenvalue vector since we want the eigenvalues
 %in order from largest to smallest
 evalue = fliplr(evalue);
-evector=fliplr(evector);
+evector = fliplr(evector);
 
+%Determine the number of components we should use
+numComp = calcComp(evalue,userComp);
 
-%Start the feature vector as just the first eigenvector, since this is
-%guaranteed to be part of the feature vector
-TV = evector(:,1);
-
-%We will choose a stopping rule such that we stop when the rate of
-%eigenvalue decrease becomes positive (second derivative negative)
-
-%Matlab automatically orders the eigenvectors in increasing eigenvalue and
-%normalizes the eigenvectors
-for k=2:dim
-    %Calculate the concavity of the eigenvalues. If it is concave down then
-    %stop.
-    conc = evalue(k-1) - 2*evalue(k) + evalue(k+1);
-    %Concatenate the feature vector with the eigenvector
-    TV = cat(2,TV,evector(:,k));
-    %If it is concave down (the next one) then stop
-    if (conc < 0)
-        break;
-    end
-end
+%Now, concatenate together the necessary eigenvectors
+TV = evector(:,1:numComp);
 
 %Left multiply the adjusted data by the tranpose of the feature vector
 TD = (X * TV);

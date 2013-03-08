@@ -19,31 +19,44 @@ rawData = o.read('TPO');
 %The number of keypoints and degrees of freedom
 %There are three threshold parameters for each task (thickness, position,
 %velocity), kinv number of intervals and two (step number, step size)
-[three kinv two] = size(rawData);
+[maxTask] = size(rawData,2);
 
-%Also, initialize the stepTXVO
-stepValue = zeros(three, kinv, two);
+%Also, initialize the stepValue. Note that we have three as the first
+%parameter because each task has three parameters associated with its
+%threshold.
+stepValue = cell(3,maxTask);
 
 %Now, first assume that the default value is zero, and determine the steps
 stepSize = rawData(:,:,1);
 stepNum = rawData(:,:,2);
 
-%The steps are calculated assuming the default value for the parameter is
-%zero
-totalStep=stepSize.*(stepNum-1);
+%Calculate the total range over which all steps cover
+totalStep = stepSize .* (stepNum - 1);
 
-%Now, calculate each step (starting from zero as the lowest value)
+%Now, calculate each value that we will test the parameter on
 %For each threshold parameter
-for i=1:3
+for p=1:3
     %For each task
-    for k=1:kinv
+    for k=1:maxTask
+        
+        %Initialize the stepValue cell array entry to be a vector of the
+        %appropriate length
+        stepValue{p,k} = zeros(1,stepNum(p,k));
+        
         %For each step in the optimization procedure
-        for d=1:stepNum(i,k)
-            stepValue(i,k,d)=(d-1)*stepSize(i,k);
-            %Now, we want to shift based upon the totalStep
-            stepValue(i,k,d) = stepValue(i,k,d) - totalStep(i,k)/2;
+        for d=1:stepNum(p,k)
+            
+            %Calculate the value of the parameter at each step
+            stepValue{p,k}(d) = (d-1) * stepSize(p,k);
+            
         end
+        
+        %Shift all the values such that the default parameter
+        %value is in the middle of the range of steps
+        stepValue{p,k} = stepValue{p,k} - totalStep(p,k)/2;
+        
     end
+    
 end
 
 %Now, we had 0 - - - - - - but now we get - - - 0 - - - as the interval

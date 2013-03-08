@@ -2,59 +2,60 @@
 %sequence of motions organized by task. When a task is performed more than
 %once this produces multiple motion sequences
 
-%Parameter procSeq: A sequence of motions grouped by procedure
+%Parameter D: A cell array of data objects
 
-%Return motionSeq: A sequence of motions grouped by task and number of task
-%[[Matrix of points] procedure]
-%Row: Sequence of motions
-%Column: Sequence of tasks (of unknown index)
-%3rd dimension: Index of procedure
-function motionSeq = motionSequenceByProcedure(procSeq, Task)
+%Return X_Proc: A sequence of observations organized by procedure, and
+%task (of unspecified type)
+%{procedure number}{task number}(observation)
+function D_Proc = motionSequenceByProcedure(D)
 
-%Recall that procs, the number of procedures is the length of taskArray
-procs = length(Task);
+%Recall that procs, the number of procedures is the length of D
+procs = length(D);
 
-%Keep track of the total number of different (but possibly repeated) tasks
-%in the procedure
-taskCount = 0;
-%The task we were previously doing (to determine the sequence length)
+%Count the number of tasks per procedure, points per task
+taskNum = zeros(1,procs);  pointNum = 0;
+%The task we were previously doing (to determine the sequence transition)
 prevTask = 0;
-%The number of the point for the sequence
-pointNum = 0;
 %The sequence of motion for the current task in the current procedure
-motionSeq=cell(procs,1);
-%Initialize n to have size the same as the number of procedures
-n = cell(1,procs);
+T_Proc = cell(1,procs);
+X_Proc = cell(1,procs);
+K_Proc = cell(1,procs);
+S_Proc = cell(1,procs);
 
-%Our seq tensor will be: [taskCount point task] so that we can easily read
-%a matrix if we only are considering one task
-
-%We can just reorganize the cluster vector
 %Iterate over all procedures
 for p=1:procs
-    %Recall that n is the number of time stamps for each procedure
-    n{p} = length(Task{p});
     %Iterate over all time steps in the procedure
-    for j=1:n{p}
-        %The point number in the sequence for the task, taskCount
+    for j=1:D{p}.n
+        %The point number in the sequence for the task, taskNum
         pointNum = pointNum + 1;
-        %Determine the task we are currently on and compare to the previous
-        %task. If it has changed, start a new sequence, otherwise continue
-        %the saem sequence
-        if (Task{p}(j) ~= prevTask)
-            %If we are not on the same sequence, increment the taskCount,
-            %reset the point number and change the previous task
-            taskCount = taskCount + 1;
+        %Determine the task we are currently on, compare to previous one. 
+        %If changed, start a new sequence, otherwise continue same one
+        if (D{p}.K(j) ~= prevTask)
+            %Increment taskNum; reset pointNum, change prevTask to current
+            taskNum(p) = taskNum(p) + 1;
             pointNum = 1;
-            prevTask = Task{p}(j);
+            prevTask = D{p}.K(j);
         end
         %Add this point to the sequence of clusters for the current task
-        motionSeq{p}{taskCount}(pointNum) = procSeq{p}(j);
+        T_Proc{p}{taskNum}(pointNum,:) = D{p}.T(j,:);
+        X_Proc{p}{taskNum}(pointNum,:) = D{p}.X(j,:);
+        K_Proc{p}{taskNum}(pointNum,:) = D{p}.K(j,:);
+        S_Proc{p}{taskNum}(pointNum,:) = D{p}.S;
 
     end
-    %Do not reset task count after the procedure is finished
-    taskCount = 0;
+    %Reset point count after the procedure is finished
     pointNum = 0;
+    
 end
 
-%That is all
+%Create a cell array of data objects
+D_Proc = cell(1,procs);
+
+%We shall create a cell array of cell arrays of data objects
+for i=1:procs
+    %Iterate over all occurrances of the task
+    for j=1:taskNum(i)
+        %Create the new data object
+        D_Proc{i}{j} = Data(T_Proc{i}{j},X_Proc{i}{j},K_Proc{i}{j},S_Proc{i}{j});
+    end
+end

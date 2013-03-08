@@ -5,36 +5,41 @@
 %Parameter t: The threshold value for the task
 %Parameter in: Whether or not the needle was within the phantom in the
 %previous task
-%Parameter ET: The referece vector for the entry-target line
+%Parameter Entry: The coordinates of the entry point of the plan
+%Parameter Target: The coordinates of the target point of the plan
 
 %Return task: A boolean valued scalar indicating whether or not this task
 %is being executed
-function task = isTask4(x,v,t,in,ET)
+function Task = isTask4(x,v,t,in,Entry,Target)
 
 %Task 4: Needle inside, velocity in the ET below some threshold in abs
 %value
 
 %Assign the task to be false, and return if one of the conditions is not
 %satisfied, otherwise, return true
-task=false;
+Task = false;
+
+%Calculate the plane defining the surface of the skin
+n = (Entry - Target)/norm(Entry - Target);
+D = dot(n,Entry);
 
 %Now, we must determine:
 %1. Is the needle in the phantom?
 %Note that the skin has finite thickness
 if (in == true)
-    if (dot(x(1:3),ET)/norm(ET) > (norm(ET)+t(1)))
+    if ( dot(x(1:3),n) > (D + t(1)) )
         return;
     end
 else
-    if (dot(x(1:3),ET)/norm(ET) > (norm(ET)-t(1)))
+    if ( dot(x(1:3),n) > (D - t(1)) )
         return;
     end
 end
 
 %2. Is the velocity of the needle in the -ET direction below some threshold
-if (abs(dot(v(1:3),ET)/norm(ET)) > t(3))
+if ( abs( dot(v(1:3),n) ) > t(3) )
    return; 
 end
 
 %Otherwise, task=true
-task=true;
+Task = true;

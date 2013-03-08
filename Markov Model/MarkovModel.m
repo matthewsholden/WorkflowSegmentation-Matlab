@@ -135,20 +135,31 @@ classdef MarkovModel
         
         %This method will use the viterbi algorithm to determine the most
         %likely state path to have produced the observations
-        function res = statePath(M,seq)
+        function [prob path] = statePath(M,seq)
             %Use the hmmviterbi algorithm
-            res = hmmviterbi(seq,M.getAP(),M.getBP()) - 1;
+            [prob path] = hmmstates2(seq,M.getPi(),M.getA(),M.getB());
         end
         
         %This method will be used to train the algorithm via the Baum-Welch
         %method...
         function M = train(M,seq,pseudoPi,pseudoA,pseudoB)
             %Use the Baum-Welch algorithm
-            if (nargin == 5)
-                [trainPi trainA trainB] = hmmtrainMultiple(seq,M.getPi(),M.getA(),M.getB(),pseudoPi,pseudoA,pseudoB);
-            else
-                [trainPi trainA trainB] = hmmtrainMultiple(seq,M.getPi(),M.getA(),M.getB());
+            
+                        
+            %If we have a predefined size, keep it
+            if (nargin < 3)
+                pseudoPi = zeros(size(M.getPi()));
             end
+            if (nargin < 4)
+                pseudoA = zeros(size(M.getA()));
+            end
+            if (nargin < 5)
+                pseudoB = zeros(size(M.getB()));
+            end
+            
+            %Train the Markov Model
+            [trainPi trainA trainB] = hmmtrainMultiple(seq,M.getPi(),M.getA(),M.getB(),pseudoPi,pseudoA,pseudoB);
+
             %Now, we have the unconcatenated matrices
             M.A = trainA;
             M.pi = trainPi;

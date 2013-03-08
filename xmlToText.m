@@ -240,7 +240,7 @@ for j=1:length(T)
 end
 
 %And write these to file...
-writeProcedure(T,X);
-writeTask(T,Task);
+D = Data(T',X',Task',0);
+writeRecord(D);
 
 

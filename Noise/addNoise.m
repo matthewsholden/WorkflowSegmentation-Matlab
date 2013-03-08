@@ -38,3 +38,6 @@ gmd=gmdistribution(mu,sigma,weight);
 
 %Now, pick a random value given the mixed Gaussian distribution
 x = random(gmd);
+
+%Clear the mixture distribution
+clear gmd;

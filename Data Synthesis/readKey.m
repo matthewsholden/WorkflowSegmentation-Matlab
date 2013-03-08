@@ -15,6 +15,9 @@ o = Organizer();
 %vector/matrix
 rawData = o.readAll('Key');
 
+%Clear the organizer object now that we are done with it
+clear o;
+
 %The number of keypoints and degrees of freedom
 keys = length(rawData);
 
@@ -33,3 +36,4 @@ for k=1:keys
     X{k} = rawData{k}(:,3:end);
     
 end
+

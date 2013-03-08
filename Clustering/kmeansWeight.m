@@ -13,6 +13,11 @@
 %Return D: A matrix indicating the weighted cluster error for each cluster
 function [ix C dis D] = kmeansWeight(X,W,k)
 
+%Determine the size of our input points
+[n dim] = size(X);
+%Create a vector counting the number of points
+v=1:n;
+
 %Keep a vector of centroids from the previous number of clusters
 C = zeros(0,size(X,2));
 ix = ones(1,size(X,1));
@@ -20,30 +25,28 @@ dis = zeros(size(X,1),k);
 D = zeros(1,size(X,1));
 
 %We need only calculate the distance between any two points once
-disX = intraDistances(X,W);
+disX2 = interDistances(X,X,W) .^ 2;
 
 %Iterate over all values of k
 for j=1:k
     
-    %Calculate the point at which the new centroid will be added
-    b = zeros(1,size(X,1));
-    %Consider a new centroid at the point with the lth index
-    for l=1:size(X,1)
-        %The guaranteed error reducation vector b is calculated by
-        %iterating over all points
-        for m=1:size(X,1)
-            %Let improve be the improvement in error between the current
-            %centroid and the added centroid
-            improve = dis(m,ix(m))^2 - disX(l,m);
-            %For each point, add whichever is larger, the distance to its
-            %cluster centroid or the distance to the new centroid
-            b(l) = b(l) + max(improve,0);
-        end
-    end
+    %disp (['Clusters: ', num2str(j) ]);
+    
+    %First, calculate the distance from each point to its centroid
+    %Find the linear index corresponding
+    lix = sub2ind(size(dis),v,ix(v));
+    %Next, calculate the vector of corresponding points
+    disXC2 = dis(lix).^2;
+    %Calculate the improvement at each point using bsxfun
+    improve = bsxfun(@minus,disXC2,disX2);
+    %Next, assign zero if improve has any elements less than zero
+    improve = max(improve,0);
+    %Finally, determine the improvement for each point
+    b = sum(improve,2);
     
     %The index of the data point at which we will place the next centroid
     %is the index of the maximum b(l)
-    new = maxIndex(b);
+    [~, new] = max(b);
     
     %Now, calculate the new clustering
     [ix C dis D] = kmeansWeightOne(X,C,W,new);
@@ -53,28 +56,31 @@ end
 
 
 
-%This function will perform a kmeans clustering algorithm, but normalize
-%the variance in each dimension such that no particular dimension is
-%favoured
+%This function will perform a kmeans clustering algorithm, given the
+%location of the new point we wish to add
 
 %Parameter X: A matrix of data points to cluster; rows correspond to
 %points, columns correspond to variables
 %Parameter C: The centroids for the solution to the clustering problem for
 %k-1 clusters
+%Parameter W: The weighting associated with each dimension
 %Parameter new: The index of the data point at which the new cluster will
 %be located
 
 %Return ix: A vector indicating the cluster index of each point above
 %Return C: The locations of the centroids of each cluster
-%Return dist: The distance from each data point to each cluster
-%Return currDist: A matrix indicating the weighted cluster error for each cluster
+%Return dis: The distance from each data point to each cluster
+%Return D: A matrix indicating the weighted cluster error for each cluster
 function [ix C dis D] = kmeansWeightOne(X,C,W,new)
+
+%Determine the size of our input points
+[n, ~] = size(X);
+%Create a vector counting the number of points
+v=1:n;
 
 %Allocate the newest centroid to have location specified by the data point
 %with index new
 C = cat(1,C,X(new,:));
-%Let k be the number of centroids
-k = size(C,1);
 
 %Preallocate the cluster index of each point
 ix = zeros(1,size(X,1));
@@ -116,15 +122,15 @@ while (change ~= 0 || empty)
     
 end
 
-%Calculate the sum of all distances from points to their corresponding
-%centroids using the weighting
-D = zeros(1,k);
-
-%Iterate over each point and compare to each other point
-for i=1:size(X,1)
-    %Calculate the distance between each point and its centroid
-    D(ix(i)) = D(ix(i)) + dis(i,ix(i))^2;
-end
+%Now, calculate the distance of member points to each centroid
+%Create a matrix of zeros the same size as dis
+D = zeros(size(dis));
+%Find the linear index corresponding
+lix = sub2ind(size(dis),v,ix(v));
+%Now, only consider the appropriate indices for D
+D(lix) = dis(lix).^2;
+%And sum over all rows
+D = sum(D,1);
 
 
 %The error is the difference between the previous sum of squared

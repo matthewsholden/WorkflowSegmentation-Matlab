@@ -18,19 +18,24 @@ o = Organizer();
 
 %Read the task record from our example record file
 Q = o.read('Q');
-[dt length] = readTime();
+Play = o.read('Play');
 
 %Read the noise matrices here from file
 X_Bs = o.read('X_Bs');
 X_Wt = o.read('X_Wt');
 X_Mx = o.read('X_Mx');
+%Read the human noise parameters from file
+Human = o.read('Human');
+
+%Clear the organizer now that we are done with it
+clear o;
 
 %The number of degrees of freedom is determined by the size of K.X
 dof = size(Key.X,2);
 
 %Calculate the number of time steps that will be required for the desired
 %output accuracy
-n = round( ( Key.T(Key.count) - Key.T(1) ) / dt );
+n = round( ( Key.T(Key.count) - Key.T(1) ) / Play(1) );
 
 
 %Initialize the size of the time vector and the DOF matrix
@@ -40,14 +45,14 @@ K=zeros(n,1);
 
 %Let T be related to the time step by a scaling dt
 for j=1:n
-    T(j) = (j-1)*dt;
+    T(j) = (j-1) * Play(1);
 end
 
 %We want to calculate a spline for the trajectory given by each degree of
 %freedom...
 %a) Calculate a regular cubic spline (natural spline)
 %b) Calculate a velocity cubic spline (as described in Murphy)
-%c) Calculate a liner spline (connect the dots with lines)
+%c) Calculate a linear spline (connect the dots with lines)
 
 %This for loop implements all three different types of splines
 %Iterate over all degrees of freedom of the motion
@@ -55,12 +60,12 @@ for i=1:n
     %Iterate over all n time steps
     for j=1:dof
         %Now, calculate the point using a spline (pick one)
-        %X(i,j) = spline(kt,kx(i,:),T(j));
-        %X(i,j) = velocitySpline(kt,kx(i,:),T(j));
+        %X(i,j) = spline(Key.T,Key.X(:,j),T(i));
+        %X(i,j) = velocitySpline(Key.T,Key.X(:,j),T(i));
         X(i,j) = linearSpline(Key.T,Key.X(:,j),T(i));
         %And calculate the task at the current time step, adding one since the
         %data point indicates the end of the previous task
-        K(i) = Key.K( getInterval(Key.T,T(i)) + 1 );
+        K(i) = Key.K( getInterval3(Key.T,T(i)) + 1 );
     end
     
 end
@@ -77,7 +82,6 @@ D = Data(T,X,K,0);
 D = D.addNoise(X_Bs,X_Wt,X_Mx);
 
 %Normalize the quaternions as required
-D = D.normalize(Q);
-
+D = D.normalizeQuaternion(Q);
 
 

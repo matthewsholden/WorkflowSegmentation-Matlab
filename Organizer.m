@@ -49,6 +49,9 @@ classdef Organizer
                 O.overwrite{count}=data{pos};
                 pos = pos + 1;
             end
+            
+            %Ensure that recycling is turned off
+            recycle off;
                      
         end
         
@@ -56,8 +59,6 @@ classdef Organizer
         %following catgeorization, where pathArray is a cell array of
         %strings specifying the data we wish to read
         function data = read(O,paramName)
-            %Create a string representing the path to the file we wish to
-            %read
             %Create an initial string with the rootPath in it
             filePath = O.rootPath;
             %The index corresponding to the parameter
@@ -72,8 +73,6 @@ classdef Organizer
         %This function will read data from all files specified by the
         %categrorization if they have differing numbers
         function data = readAll(O,paramName)
-            %Create a string representing the path to the file we wish to
-            %write
             %Create an initial string with the rootPath in it
             filePath = O.rootPath;
             %The index corresponding to the parameter
@@ -114,9 +113,7 @@ classdef Organizer
         %We shall implement delete functions to delete the specified
         %parameter files. These will have the exact same structure as the
         %reading methods except the files will be deleted rather than read
-        function data = delete(O,paramName)
-            %Create a string representing the path to the file we wish to
-            %delete
+        function O = delete(O,paramName)
             %Create an initial string with the rootPath in it
             filePath = O.rootPath;
             %The index corresponding to the parameter
@@ -129,9 +126,7 @@ classdef Organizer
         end
         
         %Delete all of the specified file of this parameter type
-        function data = deleteAll(O,paramName)
-            %Create a string representing the path to the file we wish to
-            %delete
+        function O = deleteAll(O,paramName)
             %Create an initial string with the rootPath in it
             filePath = O.rootPath;
             %The index corresponding to the parameter
@@ -144,7 +139,8 @@ classdef Organizer
             %Now, create the first path name
             filePath = [origPath, num2str(count)];
             while ( exist(filePath,'file') )
-                %Read from the file
+                %Delete the file. Make sure recycling is off, otherwise
+                %this will clog up the memory...
                 delete(filePath);
                 %Increase the count
                 count = count + 1;
@@ -155,9 +151,7 @@ classdef Organizer
         
         %This function will delete files specified by the
         %categroization and number
-        function data = deleteNum(O,paramName,num)
-            %Create a string representing the path to the file we wish to
-            %write
+        function O = deleteNum(O,paramName,num)
             %Create an initial string with the rootPath in it
             filePath = O.rootPath;
             %The index corresponding to the parameter
@@ -176,8 +170,6 @@ classdef Organizer
         %strings specifying the data we wish to write and data is the
         %tensor of data which we wish to write to file
         function status = write(O,paramName,data)
-            %Create a string representing the path to the file we wish to
-            %write
             %Create an initial string with the rootPath in it
             filePath = O.rootPath;
             %The index corresponding to the parameter
@@ -188,6 +180,25 @@ classdef Organizer
             filePath = O.newPath(filePath,O.overwrite{ix});
             %Now use the dlmrwriten function
             status = dlmwriten(filePath,data,'\t');
+        end
+        
+        %This function will be used to write to a file specified by the
+        %following catgeorization, where pathArray is a cell array of
+        %strings specifying the data we wish to write and data is the
+        %tensor of data which we wish to write to file
+        function status = writeCell(O,paramName,data)
+            %If it was previously overwrite, then delete all entries prior
+            %to adding the new ones
+            if ( strcmp(O.overwrite{O.search(paramName)},'Overwrite') )
+               O.deleteAll(paramName); 
+            end
+            %Let the overwrite option on this be temporarily suspended
+            O.overwrite{O.search(paramName)} = 'Insert';
+            %Iteratively call the write function for each element of the
+            %cell array
+            for i = 1:numel(data)
+                status = O.write(paramName,data{i});
+            end
         end
         
         

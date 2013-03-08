@@ -76,3 +76,50 @@ for t=1:maxTask
 end
 
 %That is all
+
+
+%This function will take a sequence of observations, and determine the mean
+%observation value at which each task ends
+
+%Parameter D: A cell array of data objects
+
+%Return End: A matrix of mean observation values at the end of each task
+function End = endCent(D)
+
+%Recall that procs, the number of procedures is the length of D
+procs = length(D);
+
+%Count the number of tasks per procedure, points per task
+taskNum = zeros(1,calcMaxTask(D));  pointNum = 0;
+%The task we were previously doing (to determine the sequence transition)
+prevTask = 0;
+%The sequence of motion for the current task in the current procedure
+End = cell(1,calcMaxTask(D));
+
+%Iterate over all procedures
+for p=1:procs
+    %Iterate over all time steps in the procedure
+    for j=1:D{p}.n
+        %Determine the task we are currently on, compare to previous one.
+        %If changed, and an end point.
+        if (D{p}.K(j) ~= prevTask && prevTask ~= 0)
+            %Increment taskNum; reset pointNum, change prevTask to current
+            taskNum(D{p}.K(j)) = taskNum(D{p}.K(j)) + 1;
+            prevTask = D{p}.K(j);
+            %Add this point to the sequence of clusters for the current task
+            End{D{p}.K(j)}(taskNum(D{p}.K(j)),:) = D{p}.X(j,:);
+            
+        elseif (D{p}.K(j) ~= prevTask && prevTask == 0)
+            %Change prevTask to current
+            prevTask = D{p}.K(j);
+        end
+        
+    end
+
+end
+
+%Calculate the average end of task observation just by averaging
+for t=1:calcMaxTask(D)
+    %Find the average for each task
+    End{t} = mean(End{t},1);
+end

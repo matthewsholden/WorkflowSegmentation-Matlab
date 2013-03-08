@@ -11,7 +11,6 @@ function q = matrixToQuat(R)
 %explicitly in [LandisMarkley 2008]
 
 %First, set the size of q
-q=zeros(4,1);
 q42=zeros(4,1);
 x=zeros(4,1);
 
@@ -31,7 +30,7 @@ q42(3)=1-trR+2*R(3,3);
 q42(4)=1-trR+2*trR;
 
 %Now, we find the largest of these in magnitude
-i = maxIndex(q42);
+[~, i] = max(q42);
 
 %So, depending on our maximum index, we have
 if (i == 1)

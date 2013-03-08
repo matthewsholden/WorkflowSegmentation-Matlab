@@ -1,57 +1,40 @@
-%This function will read a sequence of tasks orgainzed by procedure
+%This function will convert a sequence of motions organized by procedure into a
+%sequence of motions organized by task. When a task is performed more than
+%once this produces multiple motion sequences
 
-%Parameter taskArray: An array of file names containg the task numbers for a
-%procedural record
+%Parameter D: A cell array of data objects
 
-%Return taskSeq: A sequence of tasks organized by procedure [procedure
-%task]
-function taskSeq = taskSequenceConvert(Task)
+%Return K_Task: A sequence of tasks organized by prcoedure (specified type)
+%{procedure}(observation)
+function K_Task = taskSequenceConvert(D)
 
-%First, find the maximum task number...
-maxTask = 0;
+%Recall that procs, the number of procedures is the length of D
+procs = length(D);
 
-%Recall that procs, the number of procedures is the length of taskArray
-procs = length(Task);
-
-%Look through all procedure files
-for p=1:procs
-    %Find the maximum task number and if it is larger than the previous
-    %maximum task number the proceed
-    if (max(Task{p}) > maxTask)
-        maxTask = max(Task{p});
-    end
-end
+%Count the number of tasks per procedure, points per task
+pointNum = 0;   taskNum = 0;    prevTask = 0;
+%The sequence of motion for the current task in the current procedure
+K_Task = cell(1,procs);
 
 
-%The task we were previously doing (to determine the sequence length)
-prevTask = 0;
-%The sequence of tasks for the current procedure
-taskSeq=cell(1,procs);
-%The total number of tasks within the procedure we are considering
-taskNum = 0;
-%Initialize n to have size the same as the number of procedures
-n = cell(1,procs);
 
-%We can just reorganize the cluster vector
 %Iterate over all procedures
 for p=1:procs
-    %Recall that n is the number of time stamps for each cluster
-    n{p} = length(Task{p});
     %Iterate over all time steps in the procedure
-    for j=1:n{p}
-        %Determine the task we are currently on and compare to the previous
-        %task. If it has changed, start a new sequence, otherwise continue
-        %the saem sequence
-        if (Task{p}(j) ~= prevTask)
-            %If we are not on the same sequence, add to the taskSeq,
-            %reset the point number and change the previous task
+    for j=1:D{p}.n
+        %The point number in the sequence for the task, taskNum
+        pointNum = pointNum + 1;
+        if (D{p}.K(j) ~= prevTask)
+            %Increment the taskNum
             taskNum = taskNum + 1;
-            taskSeq{p}(taskNum) = Task{p}(j);
-            prevTask = Task{p}(j);
+            %Increment taskNum; reset pointNum, change prevTask to current
+            K_Task{p}(taskNum) = D{p}.K(j);
+            pointNum = 1;
+            prevTask = D{p}.K(j);
         end
+
     end
-    %At the end of the procedure, reset the task number
+    %Reset task count after the procedure is finished
+    pointNum = 0;
     taskNum = 0;
 end
-
-%That is all

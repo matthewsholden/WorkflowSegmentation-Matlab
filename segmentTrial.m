@@ -8,12 +8,12 @@
 %segmentation
 
 %Return status: Whether or not we have completed the function
-function data = segmentTrial(K,noise,itr)
+function data = segmentTrial(Key,noise,itr)
 
 %If no parameter is provided, then go through the standard powers of noise
 %as we have done in the past
 if (nargin < 2)
-    noise = -5:0.5:1;
+    noise = -Inf;
 end
 %Assume that if no parameter is provided the user wishes to do only one
 %iteration per value
@@ -37,7 +37,7 @@ for p=noise
     disp([ ' Noise (power): ', num2str(p), ', Noise: ', num2str(10^p) ]);
     
     %Return the accuracy of the segmentation
-    acc = segmentSubtrial('X_Bs_Tr',p,K,itr);
+    acc = segmentSubtrial('X_Bs_Tr',p,Key,itr);
     
     %Display the parameters
     disp([ '  Accuracy (mean): ', num2str(mean(acc,2)') ]);
@@ -63,7 +63,7 @@ for p=noise
     disp([ ' Noise (power): ', num2str(p), ', Noise: ', num2str(10^p) ]);
     
     %Return the accuracy of the segmentation
-    acc = segmentSubtrial('X_Bs_Ro',p,K,itr);
+    acc = segmentSubtrial('X_Bs_Ro',p,Key,itr);
     
     %Display the parameters
     disp([ '  Accuracy (mean): ', num2str(mean(acc,2)') ]);
@@ -89,7 +89,7 @@ for p=noise
     disp([ ' Noise (power): ', num2str(p), ', Noise: ', num2str(10^p) ]);
     
     %Return the accuracy of the segmentation
-    acc = segmentSubtrial('X_Wt_Tr',p,K,itr);
+    acc = segmentSubtrial('X_Wt_Tr',p,Key,itr);
     
     %Display the parameters
     disp([ '  Accuracy (mean): ', num2str(mean(acc,2)') ]);
@@ -104,7 +104,6 @@ for p=noise
     %Now repeat for differnt noise amplitude
 end
 
-
 %Fourth, the weighted rotational
 disp('Weighted Rotational Noise Trained');
 %Noise
@@ -116,7 +115,7 @@ for p=noise
     disp([ ' Noise (power): ', num2str(p), ', Noise: ', num2str(10^p) ]);
     
     %Return the accuracy of the segmentation
-    acc = segmentSubtrial('X_Wt_Ro',p,K,itr);
+    acc = segmentSubtrial('X_Wt_Ro',p,Key,itr);
     
     %Display the parameters
     disp([ '  Accuracy (mean): ', num2str(mean(acc,2)') ]);

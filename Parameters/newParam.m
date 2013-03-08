@@ -20,4 +20,7 @@ Param=value*Param;
 %Now, write the tensor to file appropriately
 o.write(paramName,Param);
 
+%Clear the organizer object
+clear o;
+
 %Return the parameter that has been written to file

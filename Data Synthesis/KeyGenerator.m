@@ -74,20 +74,20 @@ classdef KeyGenerator
             o = Organizer();
             %The the entry-target points from file
             ET = o.read('ET');
-            
-            %Note that we define the entry-target line to have a rotation
-            %quaternion of [0 0 0 1]
+            %Now, separate into the entry and target points
+            Entry = ET(:,1);
+            Target = ET(:,2);
             
             %The first task
-            Key.TaskDef{1} = [ET(1), ET(2), ET(3), 0, 0, 0, 0, 0]';
+            Key.TaskDef{1} = [Entry', 0, 0, 0, 0, 0]';
             %The second task
-            Key.TaskDef{2} = [ET(1), ET(2), ET(3), 0, 0, 0, 1, 0]';
+            Key.TaskDef{2} = [Entry', vectorToQuat(Entry-Target,[1 0 0]'), 0]';
             %The third task
-            Key.TaskDef{3} = [0, 0, 0, 0, 0, 0, 1, 0]';
+            Key.TaskDef{3} = [Target', vectorToQuat(Entry-Target,[1 0 0]'), 0]';
             %The fourth task
-            Key.TaskDef{4} = [0, 0, 0, 0, 0, 0, 1, 0]';
+            Key.TaskDef{4} = [Target', vectorToQuat(Entry-Target,[1 0 0]'), 0]';
             %The fifth task
-            Key.TaskDef{5} = [ET(1), ET(2), ET(3), 0, 0, 0, 1, 0]';
+            Key.TaskDef{5} = [Entry', vectorToQuat(Entry-Target,[1 0 0]'), 0]';
             
         end
         
@@ -174,6 +174,8 @@ classdef KeyGenerator
             %Now that we have constructed the procedure record from the 
             %keypoints, write the procedure to file
             writeRecord(D);
+            
+            clear D;
         end
         
         %This procedure will be responsible for reading the keypoint data

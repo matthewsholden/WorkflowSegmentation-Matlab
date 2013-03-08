@@ -21,9 +21,6 @@ o = Organizer();
 %vector/matrix
 rawData = o.read('TO');
 
-%The number of keypoints and degrees of freedom
-[dof kinv three] = size(rawData);
-
 %Now, initialize the size of the kt and kp vectors for time considerations
 minTO=rawData(:,:,1);
 stepTO=rawData(:,:,2);

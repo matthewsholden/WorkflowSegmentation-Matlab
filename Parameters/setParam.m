@@ -21,4 +21,7 @@ Param(linearIndex(elem,size(Param)))=value;
 %Now, write the tensor to file appropriately
 o.write(paramName,Param);
 
-%return the parameter tha has been written to file
+%Clear the organizer object
+clear o;
+
+%Return the parameter that has been written to file

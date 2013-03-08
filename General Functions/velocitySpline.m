@@ -1,28 +1,27 @@
 %This function will, given a vector of points and a vector of times at
 %which these points are recorded, generate a velocity spline (as described
-%by [Murphy 2004]). Note that the splines are dependent on only the
+%by [Murphy 2004]). Note that the splines are dependent on only the 
 %position and velocities at their endpoints and do not depend on the spline
 %over other intervals
 
 %Parameter T: A vector of points in time
-%Parameter X: A vector of points in value, and
+%Parameter X: A vector of points in value, and 
 %Parameter t: A vector of points at which we wish to evaluate the spline
-
 %Return x: The value of the spline at the point at which we wish to evaluate
 %the spline
-function x = velocitySpline(T,X,t)
+function x = velocitySpline(T,X,V,t)
 
 %Calculate the number of point and dofs involved
 [~, dof] = size(X);
 
 %First, calculate the interval in which we lie
-inv = getInterval(T,t);
+inv = getInterval3(T,t);
 
 %Now, calculate the point values and velocities at the endpoint of the
 %interval
 t1=T(inv);        t2=T(inv+1);
 p1=X(inv,:);      p2=X(inv+1,:);
-v1=velocityCalc(T,X,inv);   v2=velocityCalc(T,X,inv+1);
+v1=V(inv,:);    v2=V(inv+1,:);
 
 %Replicate t1, t2 over all dofs
 t1 = repmat(t1,[1 dof]);
@@ -42,21 +41,3 @@ t = repmat(t,[1 dof]);
 %the spline, we can easily calculate the value of the spline at the point
 %of interest. Use Horner's algorithm
 x =( ( A .* t + B ) .* t + C ) .* t + D;
-
-%This function will calculate the velocity at the end points of eahc
-%interval
-function v = velocityCalc(T,X,k)
-
-%At each point calculate the velocity
-if (k == 1)
-    left = 1;
-    right = 2;
-elseif (k == length(T))
-    left = length(T) - 1;
-    right = length(T);
-else
-    left = k + 1;
-    right = k - 1;
-end
-
-v = ( X(right) - X(left) ) / ( T(right) - T(left) );

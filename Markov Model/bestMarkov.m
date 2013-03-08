@@ -12,18 +12,13 @@ function [ix prob] = bestMarkov(seq,M,scale)
 %Determine with what probability each Markov Model produced the sequence
 prob = zeros(length(M),1);
 
-%Create a cell array of sequences
-cellSeq = cell(1,1);
-%And assign the input sequence to the first cell of the cell array
-cellSeq{1} = seq;
-
 %Now, iterate over all Markov Models and determine the probabilities
 %individually
 for m=1:length(M)
     %Determine the probability of the current Markov Model
-    cellProb = M{m}.seqProb(cellSeq);
+    stateProb = M{m}.statePath(seq);
     %Now read this value into the probability vector
-    prob(m) = cellProb{1};
+    prob(m) = exp(stateProb);
 end
 
 %Now, scale the probabilities appropriately if a scaling is provided
@@ -34,7 +29,7 @@ end
 %Return the index of the most likely Markov Model
 %If there exist no entries in prob that are zero or greater then they are
 %all nonsensical, so we will return ix=0
-if ( isempty( find(prob>=0) ) ) %#ok<EFIND>
+if (prob==-Inf)
     ix = 0;
     %Return a probability of zero
     prob = 0;

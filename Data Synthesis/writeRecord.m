@@ -22,3 +22,5 @@ status = o.write('Task',rawData);
 
 %Write the skill to file
 status = o.write('Skill',D.S);
+
+clear o;

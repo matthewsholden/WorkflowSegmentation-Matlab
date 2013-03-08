@@ -84,19 +84,19 @@ while (count < itr(1))
 %     %First, the threshold algorithm!
 %     
 %     %Write the data to file
-%     K.writeRecord();
+%     K.writeProcedure(0);
 %     %Perform the segmentation using the threshold algorithm
-%     TaskTime = thresholdSegmentOptimize(1,itr(2));
+%     KC = thresholdSegmentOptimize(1,itr(2));
 %     
 %     %Return the accuracy of the segmentation
-%     disp(['   Count ', num2str(count), ' (Threshold): ', num2str(segmentAccuracy(1,TaskTime)) ])
-%     acc(1,count) = segmentAccuracy(1,TaskTime);
+%     disp(['   Count ', num2str(count), ' (Threshold): ', num2str(segmentAccuracy(1,KC)) ])
+%     acc(1,count) = segmentAccuracy(1,KC);
 %     
 %     %Delete all of the procedural records
 %     o.deleteAll('Procedure');
 %     o.deleteAll('Task');
 %     o.deleteAll('Skill');
-%     
+    
     
     
     %Second, the Markov algorithm!
@@ -116,15 +116,22 @@ while (count < itr(1))
     M = markovSegment(itr(2)+1);
     
     %Return the accuracy of the segmentation
-    disp(['   Count ', num2str(count), ' (Markov): ', num2str(segmentAccuracy(itr(2)+1,M.TaskTime)) ])
-    acc(2,count) = segmentAccuracy(itr(2)+1,M.TaskTime);
+    disp(['   Count ', num2str(count), ' (Markov): ', num2str(segmentAccuracy(itr(2)+1,M.KC)) ])
+    acc(2,count) = segmentAccuracy(itr(2)+1,M.KC);
+    
     
     %Delete all of the procedural records
     o.deleteAll('Procedure');
     o.deleteAll('Task');
     o.deleteAll('Skill');
     
+    %Clear the MarkovData object
+    clear M;
+    
 end
+
+%Clear the organizer object
+clear o;
 
 
 %Reset the noise parameters

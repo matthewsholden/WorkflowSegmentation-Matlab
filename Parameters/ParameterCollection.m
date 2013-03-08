@@ -5,35 +5,12 @@ classdef ParameterCollection
     
     %A list of all of the parameters we need to store
     properties (SetAccess = private)
-        %A matrix of allowed transitions
-        Allow;
-        %A matrix of sensible transitions
-        Sense;
-        %A matrix of next instruction given completed tasks (and order)
-        Next;
+        %A cell array of parameters, noting that we cannot sort, add,
+        %remove parameters at all
+        Params;
         
-        
-        %The parameters for performing our orthogonal transformation
-        Orth;
-        %The transformation vector associated with the PCA or LDA (if
-        %applicable)
-        Trans;
-        %Mean associated with each degree of freedom
-        Mn;
-        
-        %The number of clustering centroids for each task
-        K;
-        %The centroid for each of our clusters
-        Cent;
-        %The number of the clusters corresponding to the end of each task
-        End;
-        %The weighting associated with each dimension of the clustering
-        Weight;
-        
-        %The parameters associatted with thresholding
-        TP;
-        %The parameters associated with the optimization of thresholding
-        TPO;
+        %A cell array to readily associate names with indices
+        paramNames;
         
     end
     
@@ -46,84 +23,95 @@ classdef ParameterCollection
             %Create an organizer object to read from file
             o = Organizer();
             
-            %Read each parameter from file. We won't narrate through each
-            %parameter, because that would be tedious and unecessary
+            %Create params as a cell array of parameter objects
+            P.Params = cell(1,12);
+            P.paramNames = cell(1,12);
+            
+            %If we use getters and setters, we won't be affected if we just
+            %numbers to reference, because each number will have an
+            %associated name, so we can search by name
             
             %Transitions
-            P.Allow = Parameter('Allow',o.read('Allow'));
-            P.Sense = Parameter('Sense',o.read('Sense'));
-            P.Next = Parameter('Next',o.read('Next'));
+            P.Params{1} = Parameter('Allow',o.read('Allow'));
+            P.Params{2} = Parameter('Sense',o.read('Sense'));
+            P.Params{3} = Parameter('Next',o.read('Next'));
             
             %Transformations
-            P.Orth = Parameter('Orth',o.read('Orth'));
-            P.Trans = Parameter('Trans',o.read('Trans'));
-            P.Mn = Parameter('Mn',o.read('Mn'));
+            P.Params{4} = Parameter('Orth',o.read('Orth'));
+            P.Params{5} = Parameter('TransPCA',o.read('TransPCA'));
+            P.Params{6} = Parameter('TransLDA',o.readAll('TransLDA'));
+            P.Params{7} = Parameter('Mn',o.read('Mn'));
             
             %Clustering
-            P.K = Parameter('K',o.read('K'));
-            P.Cent = Parameter('Cent',o.read('Cent'));
-            P.End = Parameter('End',o.read('End'));
-            P.Weight = Parameter('Weight',o.read('Weight'));
+            P.Params{8} = Parameter('CP',o.read('CP'));
+            P.Params{9} = Parameter('Cent',o.read('Cent'));
+            P.Params{10} = Parameter('End',o.read('End'));
+            P.Params{11} = Parameter('Weight',o.read('Weight'));
             
             %Thresholding
-            P.TP = Parameter('TP',o.read('TP'));
-            P.TPO = Parameter('TPO',o.read('TPO'));
+            P.Params{12} = Parameter('TP',o.read('TP'));
+            P.Params{13} = Parameter('TP_Opt',o.read('TP_Opt'));
+            
+            %Keep a cell array of names such that each name can be readily
+            %associated with an index
+            P.paramNames{1} = 'Allow';
+            P.paramNames{2} = 'Sense';
+            P.paramNames{3} = 'Next';
+            
+            P.paramNames{4} = 'Orth';
+            P.paramNames{5} = 'TransPCA';
+            P.paramNames{6} = 'TransLDA';
+            P.paramNames{7} = 'Mn';
+            
+            P.paramNames{8} = 'CP';
+            P.paramNames{9} = 'Cent';
+            P.paramNames{10} = 'End';
+            P.paramNames{11} = 'Weight';
+            
+            P.paramNames{12} = 'TP';
+            P.paramNames{13} = 'TP_Opt';
             
         end
         
         %We also want to be able to set the parameters, if we get new
         %information
         function P = set(P,name,value)
-            %Determine the relevant field
-            Field = P.search(name);
-            %Set the object to be the set valued version of field
-            P.search(name) = value;
+            %Determine the number of the parameter we wish to set
+            setNum = P.search(name);
+            %And set this numbered parameter to the value
+            P.Params{setNum}.setValue(value);
         end
         
+        %Get what the value of the parameter is
+        function value = get(P,name)
+            %Determine the number of the parameter we wish to get
+            getNum = P.search(name);
+            %Set value to the value of this parameter
+            value = P.Params{getNum}.Value;
+        end
+        
+        %Read the parameter to file
+        function P = read(P,name)
+            %Read the parameter for the name from file
+            P = o.read(name);
+        end
+        
+        %Write the parameter to file
+        function P = write(P,name)
+            %Determine the number of the parameter we wish to write
+            writeNum = P.search(name);
+            %Set value to the value of this parameter
+            P = o.write(name,P.Params{writeNum}.Value);
+        end
         
         
         
         %We want a private method that we can use to find the variable
         %associated with the given input
-        function Param = search(P,name)
-            %Find the associated variable to the name
-            if (P.Allow.isName(name))
-                Param = P.Allow;
-            end
-            if (P.Sense.isName(name))
-                Param = P.Sense;
-            end
-            if (P.Next.isName(name))
-                Param = P.Next;
-            end
-            if (P.Orth.isName(name))
-                Param = P.Orth;
-            end
-            if (P.Trans.isName(name))
-                Param = P.Trans;
-            end
-            if (P.Mn.isName(name))
-                Param = P.Mn;
-            end
-            if (P.K.isName(name))
-                Param = P.K;
-            end
-            if (P.Cent.isName(name))
-                Param = P.Cent;
-            end
-            if (P.End.isName(name))
-                Param = P.End;
-            end
-            if (P.Weight.isName(name))
-                Param = P.Weight;
-            end
-            if (P.TP.isName(name))
-                Param = P.TP;
-            end
-            if (P.TPO.isName(name))
-                Param = P.TPO;
-            end
-            %That is all the parameters
+        function paramNum = search(P,name)
+           %The the index of the parameter corresponding to the specified
+           %name
+           paramNum = find( strcmp(name,P.paramNames) );
         end
         
         

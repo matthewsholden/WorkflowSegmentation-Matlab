@@ -2,13 +2,21 @@
 %task records by simply looking at all of them and finding the largest
 %number
 
-%Return maxTask: The largest task number in existence
-function maxTask = calcMaxTask(Task)
+%Parameter D: A cell array of data objects, storing procedural records
 
-%We need an organizer to read/write from file if we do not have the task
+%Return maxTask: The largest task number in existence
+function [maxTask maxSkill] = calcMaxTask(D)
+
+%We need an organizer to read/write from file if we do not have the
 %records inputted
 if (nargin == 0)
-    [T Task] = readTask();
+    D = readRecord();
+end
+
+%We might have just a single record as an input, in this case, create a
+%cell array
+if ( ~iscell(D) )
+   D{1} = D; 
 end
    
 %Otherwise, there's nothing to read
@@ -16,14 +24,16 @@ end
 %First, find the maximum task number...
 maxTask = 0;
 
-%Recall that procs, the number of procedures is the length of taskArray
-procs = length(Task);
+%Recall that procs, the number of procedures is the length of D
+procs = length(D);
 
 %Look through all procedure files
 for p=1:procs
+    
     %Find the maximum task number and if it is larger than the previous
-    %maximum task number the proceed
-    if (max(Task{p}) > maxTask)
-        maxTask = max(Task{p});
+    %maximum task number then proceed
+    if ( max( D{p}.K ) > maxTask )
+        maxTask = max( D{p}.K );
     end
+    
 end

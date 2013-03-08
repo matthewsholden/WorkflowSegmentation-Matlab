@@ -24,15 +24,11 @@ end
 
 %Reshape X1 such that it is in the first, third dimension
 X1 = reshape(X1,[size(X1,1) 1 size(X1,2)]);
-%Now, replicate the X1 in the secon dimension
-X1 = repmat(X1,[1 size(X2,1) 1]);
 %Now, reshape the X2 such that it is in the second, third dimension
 X2 = reshape(X2,[1 size(X2,1) size(X2,2)]);
-%Now, replicate the X2 in the first dimension
-X2 = repmat(X2,[size(X1,1) 1 1]);
 
-%Subtract the two matrices
-res = X1 - X2;
+%Subtract the two matrices, expanding along singleton dimensions
+res = bsxfun(@minus,X1,X2);
 
 %Reshape W into the third dimension
 W = reshape(W,[1 1 numel(W)]);

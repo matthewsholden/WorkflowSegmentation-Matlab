@@ -1,66 +1,59 @@
-
 %This function will convert a sequence of motions organized by procedure into a
 %sequence of motions organized by task. When a task is performed more than
 %once this produces multiple motion sequences
 
-%Parameter procSeq: A sequence of motions grouped by procedure
+%Parameter D: A cell array of data objects
 
-%Return seq: A sequence of motions grouped by task and number of task
-%[[Matrix of points] task]
-%Row: Sequence of motions
-%Column: Sequence of tasks (of unknown procedure)
-%3rd dimension: Index of task
-function motionSeq = motionSequenceByTask(procSeq, Task)
+%Return X_Task: A sequence of observations organized by task (specified type)
+%{task}{task number}(observation)
+function D_Task = motionSequenceByTask(D)
 
-%First, find the maximum task number...
-maxTask = calcMaxTask(Task);
+%Recall that procs, the number of procedures is the length of D
+procs = length(D);
 
-%Recall that procs, the number of procedures is the length of taskArray
-procs = length(Task);
-
-%Now, we will have several sequences for each task, so we need to keep
-%track of how many sequences there are for each task.
-taskCount = zeros(1,maxTask);
-%The task we were previous doing (to determine the sequence length)
+%Count the number of tasks per procedure, points per task
+taskNum = zeros(1,calcMax(D,'Task'));  pointNum = 0;
+%The task we were previously doing (to determine the sequence transition)
 prevTask = 0;
-%The number of the point for the sequence
-pointNum = 0;
-%The sequence of tasks for the current procedure
-motionSeq=cell(1,maxTask);
-%Initialize n to have size the same as the number of procedures
-n = cell(1,procs);
+%The sequence of points for the current task in the current procedure
+T_Task = cell(1,calcMax(D,'Task'));
+X_Task = cell(1,calcMax(D,'Task'));
+K_Task = cell(1,calcMax(D,'Task'));
+S_Task = cell(1,calcMax(D,'Task'));
 
-%Our seq tensor will be: [taskCount point task] so that we can easily read
-%a matrix if we only are considering one task
-
-%We can just reorganize the cluster vector
 %Iterate over all procedures
 for p=1:procs
-    %Recall that n is the number of time stamps for each cluster
-    n{p} = length(Task{p});
     %Iterate over all time steps in the procedure
-    for j=1:n{p}
-        %The point number in the sequence for the task, taskCount
+    for j=1:D{p}.n
+        %The point number in the sequence for the task, taskNum
         pointNum = pointNum + 1;
-        %Determine what the current task is from the task record
-        currTask = Task{p}(j);
-        %Determine the task we are currently on and compare to the previous
-        %task. If it has changed, start a new sequence, otherwise continue
-        %the saem sequence
-        if (currTask ~= prevTask)
-            %If we are not on the same sequence, increment the taskCount,
-            %reset the point number and change the previous task
-            taskCount(currTask) = taskCount(currTask) + 1;
+        %Determine the task we are currently on, compare to previous one. 
+        %If changed, start a new sequence, otherwise continue same one
+        if (D{p}.K(j) ~= prevTask)
+            %Increment taskNum; reset pointNum, change prevTask to current
+            taskNum(D{p}.K(j)) = taskNum(D{p}.K(j)) + 1;
             pointNum = 1;
-            prevTask = currTask;
+            prevTask = D{p}.K(j);
         end
-        %Add this point to the sequence for the current task
-        motionSeq{currTask}{taskCount(currTask)}(pointNum) = procSeq{p}(j);
+        %Add this point to the sequence of clusters for the current task
+        T_Task{D{p}.K(j)}{taskNum(D{p}.K(j))}(pointNum,:) = D{p}.T(j,:);
+        X_Task{D{p}.K(j)}{taskNum(D{p}.K(j))}(pointNum,:) = D{p}.X(j,:);
+        K_Task{D{p}.K(j)}{taskNum(D{p}.K(j))}(pointNum,:) = D{p}.K(j,:);
+        S_Task{D{p}.K(j)}{taskNum(D{p}.K(j))}(pointNum,:) = D{p}.S;
 
     end
-    %Do not reset the task count at the end of each procedure
-    prevTask = 0;
-    
+    %Reset task count after the procedure is finished
+    pointNum = 0;
 end
 
-%That is all
+%Create a cell array of data objects
+D_Task = cell(1,calcMax(D,'Task'));
+
+%We shall create a cell array of cell arrays of data objects
+for i=1:calcMax(D,'Task')
+    %Iterate over all occurrances of the task
+    for j=1:taskNum(i)
+        %Create the new data object
+        D_Task{i}{j} = Data(T_Task{i}{j},X_Task{i}{j},K_Task{i}{j},S_Task{i}{j});
+    end
+end

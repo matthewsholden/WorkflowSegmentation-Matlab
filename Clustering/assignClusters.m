@@ -7,10 +7,10 @@
 %Parameter ix: A vector indicating each point's cluster (previously)
 
 %Return ix: A vector yielding the cluster associated with each point
-%Return numMember: The number of members associated with each cluster
+%Return hasMember: If the cluster has a member associated with it
 %Return change: The number of points that have changed cluster this
 %iteration
-function [ix numMember change] = assignClusters(dis,ix)
+function [ix hasMember change] = assignClusters(dis,ix)
 
 %Calculate the number of points and the number of clusters
 [n k] = size(dis);
@@ -22,18 +22,17 @@ numMember = zeros(1,k);
 %have changed their cluster
 change = 0;
 
-%Iterate over each point
-for i=1:n
-    %Determine the smallest distance and assign the point to that
-    %cluster
-    ixi = minIndex(dis(i,:));
-    %If we have a different index than previously, indicate that a
-    %change in clusters has been made
-    if (ixi ~= ix(i))
-        change = change + 1;
-    end
-    %Set the new cluster index
-    ix(i) = ixi;
-    %Note that the cluster is not empty
-    numMember(ixi) = numMember(ixi) + 1;
+%Determine the smallest distance and assign the point to that
+%cluster
+[~, ixi] = min(dis,[],2);
+%Transpose because we want a row vector
+ixi = ixi';
+%If we have a different index than previously, indicate that a
+%change in clusters has been made
+if (~(ixi==ix))
+    change = 1;
 end
+%Set the new cluster index
+ix = ixi;
+%Note that the cluster is not empty
+hasMember = ismember(ixi,1:k) + 1;

@@ -40,7 +40,7 @@ diffB = szB - szA;
 %Now, pad each tensor appropriately
 for d=1:dim
     %If the difference is non-zero then pad one of the arrays
-   if (diffA(dim) > 0)
+   if (diffA(d) > 0)
        %Create the pad vector
        padVector = zeros(size(szA));
        padVector(d) = diffA(d);
@@ -49,7 +49,7 @@ for d=1:dim
    end
    
        %If the difference is non-zero then pad one of the arrays
-   if (diffB(dim) > 0)
+   if (diffB(d) > 0)
        %Create the pad vector
        padVector = zeros(size(szB));
        padVector(d) = diffB(d);
