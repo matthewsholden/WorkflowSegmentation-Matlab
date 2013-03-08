@@ -8,14 +8,15 @@
 function M = markovSegment(num)
 
 %Read the procedure from file
-D = readRecord();
+[T X] = readProcedure();
 
 %Just consider the first procedure for now
-T = D{num}.T;
-X = D{num}.X;
+T = T{num};
+X = X{num};
 
 %Create a new MarkovData object
-M = MarkovData(calcMax(D,'Task'), calcMax(D,'Skill'));
+%M = MarkovData(calcMaxTask());
+M = MarkovData(3,5);
 
 %Determine the number of time steps...
 n = length(T);
@@ -23,7 +24,7 @@ n = length(T);
 %Now, go through all time steps and determine the task being executed
 for j=1:n
    t = T(j);
-   x = X(j,:)';
+   x = X(:,j)';
    %Add the data point to the MarkovData Model
    M = M.addPoint(t,x);
    

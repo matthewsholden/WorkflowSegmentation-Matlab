@@ -20,9 +20,7 @@ dis = zeros(size(X,1),k);
 D = zeros(1,size(X,1));
 
 %We need only calculate the distance between any two points once
-disX2 = intraDistances(X,W).^2;
-
-
+disX = intraDistances(X,W);
 
 %Iterate over all values of k
 for j=1:k
@@ -36,7 +34,7 @@ for j=1:k
         for m=1:size(X,1)
             %Let improve be the improvement in error between the current
             %centroid and the added centroid
-            improve = dis(m,ix(m))^2 - disX2(l,m);
+            improve = dis(m,ix(m))^2 - disX(l,m);
             %For each point, add whichever is larger, the distance to its
             %cluster centroid or the distance to the new centroid
             b(l) = b(l) + max(improve,0);

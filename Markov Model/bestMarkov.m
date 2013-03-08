@@ -13,13 +13,15 @@ function [ix prob] = bestMarkov(seq,M,scale)
 prob = zeros(length(M),1);
 
 %Create a cell array of sequences
-seq = makeCell(seq);
+cellSeq = cell(1,1);
+%And assign the input sequence to the first cell of the cell array
+cellSeq{1} = seq;
 
 %Now, iterate over all Markov Models and determine the probabilities
 %individually
 for m=1:length(M)
     %Determine the probability of the current Markov Model
-    cellProb = M{m}.seqProb(seq);
+    cellProb = M{m}.seqProb(cellSeq);
     %Now read this value into the probability vector
     prob(m) = cellProb{1};
 end

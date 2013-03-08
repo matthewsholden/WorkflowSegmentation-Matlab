@@ -45,7 +45,7 @@ end
 %Flip the eigenvector and eigenvalue vector since we want the eigenvalues
 %in order from largest to smallest
 evalue = fliplr(evalue);
-evector = fliplr(evector);
+evector=fliplr(evector);
 
 
 %Start the feature vector as just the first eigenvector, since this is

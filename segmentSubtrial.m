@@ -84,19 +84,19 @@ while (count < itr(1))
 %     %First, the threshold algorithm!
 %     
 %     %Write the data to file
-%     K.writeProcedure(0);
+%     K.writeRecord();
 %     %Perform the segmentation using the threshold algorithm
-%     KC = thresholdSegmentOptimize(1,itr(2));
+%     TaskTime = thresholdSegmentOptimize(1,itr(2));
 %     
 %     %Return the accuracy of the segmentation
-%     disp(['   Count ', num2str(count), ' (Threshold): ', num2str(segmentAccuracy(1,KC)) ])
-%     acc(1,count) = segmentAccuracy(1,KC);
+%     disp(['   Count ', num2str(count), ' (Threshold): ', num2str(segmentAccuracy(1,TaskTime)) ])
+%     acc(1,count) = segmentAccuracy(1,TaskTime);
 %     
 %     %Delete all of the procedural records
 %     o.deleteAll('Procedure');
 %     o.deleteAll('Task');
 %     o.deleteAll('Skill');
-    
+%     
     
     
     %Second, the Markov algorithm!
@@ -116,8 +116,8 @@ while (count < itr(1))
     M = markovSegment(itr(2)+1);
     
     %Return the accuracy of the segmentation
-    disp(['   Count ', num2str(count), ' (Markov): ', num2str(segmentAccuracy(itr(2)+1,M.KC)) ])
-    acc(2,count) = segmentAccuracy(itr(2)+1,M.KC);
+    disp(['   Count ', num2str(count), ' (Markov): ', num2str(segmentAccuracy(itr(2)+1,M.TaskTime)) ])
+    acc(2,count) = segmentAccuracy(itr(2)+1,M.TaskTime);
     
     %Delete all of the procedural records
     o.deleteAll('Procedure');

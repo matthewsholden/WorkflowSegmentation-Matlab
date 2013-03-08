@@ -10,11 +10,11 @@ function acc = segmentAccuracy(num,task)
 
 %To determine the actual segmentation, we require the keypoint data and the
 %procedural record
-D = readRecord();
+[T Task] = readTask();
 
 %Only consider the first time and position record...?
-T = D{num}.T;
-Task = D{num}.K;
+T = T{num};
+Task = Task{num};
 
 %This will also plot the task as a function of time for both the calculated
 %task and the actual task

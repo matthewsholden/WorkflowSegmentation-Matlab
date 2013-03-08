@@ -1,13 +1,6 @@
 %This function will, given a vector of points and a vector of times,
 %perform a Legendre trasnform on the data up to a specified order
 
-%Parameter T: A vector of time stamps
-%Parameter X: A vector of values at the given time steps
-%Parameter order: The order of Legendre transform we wish to perform
-
-%Return a: A vector of Legendre coefficients in order
-function a = Legendre(T,X,order)
-
 %Recall the Legendre Polynomials:
 %P0(x) = 1
 %P1(x) = x
@@ -17,12 +10,31 @@ function a = Legendre(T,X,order)
 %P5(x) = 63/8*x^5 - 35/4*x^3 + 15/8*x
 %P6(x) = 231/16*x^6 - 315/16*x^4 + 105/16*x^2 - 5/16
 
+%Parameter T: A vector of time stamps
+%Parameter X: A vector of values at the given time steps
+%Parameter order: The order of Legendre transform we wish to perform
+
+%Return a: A vector of Legendre coefficients in order
+function a = Legendre(T,X,order)
+
+%First, create inline functions for each of the Legendre polynomials up to
+%order 6 (hopefully this will be enough)
+% P0 = inline('1','x');
+% P1 = inline('x','x');
+% P2 = inline('3/2*x.^2 - 1/2','x');
+% P3 = inline('5/2*x.^3 - 3/2*x','x');
+% P4 = inline('35/8*x.^4 - 15/4*x.^2 + 3/8','x');
+% P5 = inline('63/8*x.^5 - 35/4*x.^3 + 15/8*x','x');
+% P6 = inline('231/16*x.^6 - 315/16*x.^4 + 105/16*x.^2 - 5/16','x');
+
 %So now that we have our legendre polynomials, we must evaluate them at all
 %of the same normalization
 %So the vector we return will be of length (order+1)
 a = zeros(1,order+1);
 
-%First, we must normalize our function so that it spans the interval (-1,1)
+%First, we must normalize our function such that it spans the interval
+%(-1,1)
+%Find the range in time of the data
 range = T(end) - T(1);
 %Note that if the range in the data is zero then we have no area when we
 %integrate, so just return zero since we know that this will be the result
@@ -36,6 +48,9 @@ T = T - T(1);
 T = 2*T/range;
 %Shift the range such that it spans (-1,1)
 T = T - 1;
+
+
+
 
 %Now go through each Legendre polynomial and determine the coefficient upto
 %the orderth order polynomial

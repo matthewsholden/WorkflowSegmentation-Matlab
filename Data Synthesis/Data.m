@@ -54,10 +54,10 @@ classdef Data
             
             %Calculate the mean and standard deviation at the same time
             for i=1:D.n
-                %Use the task as the index
-                mn(D.K(i),:) = mn(D.K(i),:) + D.X(i,:);
-                sd(D.K(i),:) = sd(D.K(i),:) + D.X(i,:).^2;
-                count(D.K(i)) = count(D.K(i)) + 1;
+               %Use the task as the index 
+               mn(D.K(i),:) = mn(D.K(i),:) + D.X(i,:);
+               sd(D.K(i),:) = sd(D.K(i),:) + D.X(i,:).^2;
+               count(D.K(i)) = count(D.K(i)) + 1;
             end
             
             %Now, calculate the mean and standard deviation, iterating over
@@ -116,71 +116,24 @@ classdef Data
         end
         
         %Perform a principal component analysis on our data
-        function [DP Trans Mn] = principal(D)
+        function [DP evector mn] = principal(D)
             %Perform the principal component analysis
-            [XP Trans Mn] = pca(D.X);
+            [XP evector mn] = pca(D.X);
             %Now, create the new data object with the pca transformed data
             DP = Data(D.T,XP,D.K,D.S);
         end
         
-        %Perform a general transformation, via an addition, followed by a
-        %multiplication. This will be useful for a pca recovery.
-        function DT = transform(D,add,mult)
-            %Add the matrix add to the procedural record of D
-            XT = D.X + add;
-            %Multiply the transformed record by mult
-            XT = (XT * mult);
-            %Create a new data object with this data to output
-            DT = Data(D.T,XT,D.K,D.S);            
-        end
-        
         %Perform a kmeans clustering using the appropriate weighting
         %calculated using the z3 weighting method
-        function [DC C EC W] = wmeans(D,k)
+        function [DC C W] = wmeans(D,j)
             %Determine the weightings, using the z3 scheme
             W = z3weight(D.X);
             %Perform the clustering using the weighted wmeans method
-            [XC C] = kmeansWeight(D.X,W,k);
+            [XC C] = kmeansWeight(D.X,W,j);
             %Create a new object using the clusters as data now
             DC = Data(D.T,XC,D.K,D.S);
-            %Additionally, calculate the end of task centroids, noting that
-            %the inputted value k is the k for the kmeansWeight, and we
-            %will have more centroids due to end of task centroids
-            EC = endCent(D);
         end
         
-        %Given we already know the centroids for the clustering, find the
-        %clusters that a set of points belong to
-        function DC = findCluster(D,Cent,W)
-            %Calculate the distance from each point to each centroid using
-            %the appropriate norm
-            d = interDistances(D.X,Cent,W);
-            %Initialize out vector of clustered data
-            XC = zeros(size(D.X,1),1);
-            %Return the index yielding the minimum distance to a centroid
-            %for each point
-            for i=1:size(D.X,1)
-                XC(i) = minIndex(d(i,:));
-            end
-            %Create a new data object with the cluster index as observation
-            DC = Data(D.T,XC,D.K,D.S);
-        end
-        
-        
-        %Concatenate two data objects, by just sticking the records end to
-        %end
-        function D_Cat = concatenate(D1,D2)
-            %Concatenate the time
-            T_Cat = cat(1,D1.T,D2.T);
-            %Concatenate the dofs
-            X_Cat = cat(1,D1.X,D2.X);
-            %Concatenate the tasks
-            K_Cat = cat(1,D1.K,D2.K);
-            %Concatenate the skill
-            S_Cat = cat(1,D1.S,D2.S);
-            %Create a new data object with the concatenated data
-            D_Cat = Data(T_Cat,X_Cat,K_Cat,S_Cat);
-        end
         
     end
     

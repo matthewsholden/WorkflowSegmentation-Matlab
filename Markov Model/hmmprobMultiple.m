@@ -10,12 +10,6 @@
 %was produced by the Markov Model
 function prob = hmmprobMultiple(seq,pi,A,B)
 
-%If the input sequence seq is not a cell, but is rather a scalar/vector,
-%then make it into a cell array
-if ( ~iscell(seq) )
-    seq = num2cell(seq);
-end
-
 %Determine the number of sequences and the length of the sequences from the
 %seq matrix
 numSeq = length(seq);
@@ -29,15 +23,15 @@ M = MarkovModel('Prob',pi,A,B);
 
 %Iterate over all rows of sequences in the seq matrix
 for j=1:numSeq
-    %Allow the current sequence we are considering to be one row of the
-    %sequence matrix, and only the non-zero columns
-    currSeq = seq{j};
+   %Allow the current sequence we are considering to be one row of the
+   %sequence matrix, and only the non-zero columns
+   currSeq = seq{j};
     
-    %Determine the probability of this Markov Model producing the data using
-    %the hmmdecode method previously implemented in Matlab
-    [pstates logProb] = hmmdecode(currSeq,M.getAP(),M.getBP());
-    
-    %Now, take an exponential of the probability and add it to the
-    %probability return vector
-    prob{j} = exp(logProb);
+   %Determine the probability of this Markov Model producing the data using
+   %the hmmdecode method previously implemented in Matlab
+   [pstates logProb] = hmmdecode(currSeq,M.getAP(),M.getBP());
+
+   %Now, take an exponential of the probability and add it to the
+   %probability return vector
+   prob{j} = exp(logProb);
 end
