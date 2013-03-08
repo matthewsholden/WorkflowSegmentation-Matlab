@@ -60,7 +60,7 @@ end%for
 
 %1. Orthogonal Transformation
 for p = 1:numProc
-    DO{p} = DV{p}.orthogonal( PC.get('Orthogonal') );
+    DO{p} = DV{p}; %.orthogonal( PC.get('Orthogonal') );
     %Concatenate along the data objects together
     DO_Cat = DO_Cat.concatenate(DO{p});
 end%for

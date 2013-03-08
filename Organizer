@@ -131,36 +131,21 @@ Overwrite
 StylusTipToStylus
 Parameters/Transforms/StylusTipToStylus
 Overwrite
-ReferenceToRAS
-Parameters/Transforms/ReferenceToRAS
-Overwrite
 Subject
-LumbarExperiments
+EpiduralExperiments
 Overwrite
 Segmentation
-LumbarExperiments/Segmentation
+EpiduralExperiments/Segmentation
 Overwrite
-TrialControl L3-4
-LumbarExperiments/TrialControl/L3-4
+Novice CR
+EpiduralExperiments/Novice/CR
 Overwrite
-TrialVR L3-4
-LumbarExperiments/TrialVR/L3-4
+Novice CL
+EpiduralExperiments/Novice/CL
 Overwrite
-TrialControl L4-5
-LumbarExperiments/TrialControl/L4-5
+Expert CR
+EpiduralExperiments/Expert/CR
 Overwrite
-TrialVR L4-5
-LumbarExperiments/TrialVR/L4-5
-Overwrite
-PracticeControl L3-4
-LumbarExperiments/PracticeControl/L3-4
-Overwrite
-PracticeVR L3-4
-LumbarExperiments/PracticeVR/L3-4
-Overwrite
-PracticeControl L4-5
-LumbarExperiments/PracticeControl/L4-5
-Overwrite
-PracticeVR L4-5
-LumbarExperiments/PracticeVR/L4-5
+Expert CL
+EpiduralExperiments/Expert/CL
 Overwrite

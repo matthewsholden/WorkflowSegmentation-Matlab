@@ -18,17 +18,17 @@ techniques = {'L3-4','L4-5','L3-4','L4-5'};
 
 %Perform the segmentation of the LP procedure
 currAcc = [];
-%try
+try
     %Iterate over all skills/techniques
     for i = 1:length(skills)
         currAcc = padcat(1, currAcc, segmentLumbarType( skills{i}, techniques{i} ) );
     end%for
     %If there are no errors, the number of accuracies is number of skills
     numAcc = length(skills);
-%catch 
+catch 
     %Determine the number of accuracies that correctly wrote
     numAcc = size( currAcc, 1 );
-%end%trycatch
+end%trycatch
 
 %Create a cell array of results
 R = cell( numAcc, 2);

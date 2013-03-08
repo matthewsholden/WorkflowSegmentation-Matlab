@@ -217,19 +217,20 @@ classdef MarkovData
             end%for
             
             %Perform an orthogonal transformation on our sequence of observations
-            DO_Current = DV_Current.orthogonalLast(orthParam);
+            %DO_Current = DV_Current(end,:).orthogonalLast(orthParam);
+            DO_Current = Data( DV_Current.T(end), DV_Current.X(end,:), DV_Current.K(end), DV_Current.S );
             
             %Perform a pca transform according to the parameters
             DP_Current = DO_Current.pcaTransform(M.PC.get('TransPCA'),M.PC.get('MeanPCA'));
             
-            %Iterate over all rows in end centroids matrix
-            updated = zeros( 1, size( M.PC.get('EndCentroids'), 1 ) );
-            endDev = M.PC.get('EndDeviation');
-            endCent = M.PC.get('EndCentroids');
-            for i = 1:size( M.PC.get('EndCentroids'), 1 )
-                updated(i) = ~sum( abs( DP_Current.X - endCent(i,:) ) > endDev(i,:) );
-            end%for
-            M.complete = M.complete | updated;
+%             %Iterate over all rows in end centroids matrix
+%             updated = zeros( 1, size( M.PC.get('EndCentroids'), 1 ) );
+%             endDev = M.PC.get('EndDeviation');
+%             endCent = M.PC.get('EndCentroids');
+%             for i = 1:size( M.PC.get('EndCentroids'), 1 )
+%                 updated(i) = ~sum( abs( DP_Current.X - endCent(i,:) ) > endDev(i,:) );
+%             end%for
+%             M.complete = M.complete | updated;
             
             %Determine the cluster to which the data point belongs
             DC_Current = DP_Current.findCluster(M.PC.get('Centroids'),M.PC.get('Weight'),M.PC.get('Clout'));
