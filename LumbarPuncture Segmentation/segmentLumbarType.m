@@ -72,12 +72,12 @@ for subj = 1:subjNum
     %disp('Procedure segmented');
 
     %Calculate the accuracy of the task segmentation
-    segAcc = segmentAccuracy(D{subj}.K,MD.DK.X);
+    [segAcc, ~, ~, accDTW, ssod, n] = segmentAccuracy(D{subj}.K,MD.DK.X);
     %Add the automatic segmentation to the test data
     D_Test{subj} = Data( D_Test{subj}.T, D_Test{subj}.X, MD.DK.X, D_Test{subj}.S );
     
     %Write the accuracy to screen, and store it in vector
-    disp(['Subject ', num2str(subjArray(subj)), ': ', num2str(segAcc) ]);
+    disp(['Subject ', num2str(subjArray(subj)), ': ', num2str(segAcc), ' DTW: ', num2str(accDTW), ' SSOD: ', num2str(ssod), ' n: ', num2str(n) ]);
     acc(subj) = segAcc;
     
     %Clear the MarkovData object

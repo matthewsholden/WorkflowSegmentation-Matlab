@@ -12,7 +12,7 @@ function X = matrixToDOF(A,Trans1,Trans2)
 
 %Ok, so first, we know that this will produce eight degrees of freedom:
 % x, y, z, q1, q2, q3, q4, status
-dof=8;
+dof=7;
 X=zeros(1,dof);
 
 %Post-multiply the transformation matrix

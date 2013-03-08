@@ -36,7 +36,7 @@ metricArray = cell(0,1);
 for i = 1:numSubj
     
     %Get the mha contents of the directory of the current subject
-    currSubjDir = dir([dirPath, '/', subjDir(i).name, '/*Rem.xml']);
+    currSubjDir = dir([dirPath, '/', subjDir(i).name, '/*Filter.xml']);
     currSubjName = replaceExtension( subjDir(i).name, '');
     currMetrics = [];
     

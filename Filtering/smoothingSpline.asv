@@ -1,0 +1,48 @@
+%This function will calculate a smoothing spline by minimizes the weighting
+%average of the RMSE and RMS second derivative
+
+%Parameter D: The data object with trajectory that we want to smooth
+%Parameter a: The alpha weighting coefficient
+
+%Return DS: A data object with the smoothed trajectory
+function DS = smoothingSpline(D,a)
+
+%First, calculate the matrix of second derivatives
+H0 = diag( -2*ones(1,size(D.T,1)) );
+HN1 = diag( ones(1,size(D.T,1)-1), -1 );
+HP1 = diag( ones(1,size(D.T,1)-1), 1 );
+
+H = H0 + HN1 + HP1;
+
+%Adjust the first and last rows to use forward and backward difference
+%formulas respectively
+H(1,1:3) = [1 -2 1];
+H(end,end-2:end) = [1 -2 1];
+
+%Calculate the average difference in times stamps
+DT = diff(D.T);
+%Get the first and second time steps for each difference formula
+h1 = cat(1, DT(1), DT );
+h2 = cat(1, DT, DT(end) );
+
+%Adjust for the forward and backward difference formulas
+h1(1) = h1(2);  h2(1) = h2(2);
+h1(end) = h1(end-1);  h2(end) = h2(end-1);
+
+%Multiply through to get the second-order difference operator
+
+
+%So, the squared second derivative operator is
+C = diag( 1 ./ (h1 .* h2) );
+K = H' * C * H;
+XS = (eye(size(K)) + a * K) \ D.X;
+
+%Calculate the LDL decomposition
+% C = diag( (h1 .* h2) );
+% [L Dg] = ldl( C + a * ( H * H' ) );
+% hx = H * D.X;
+% gamma = linsolve( L, linsolve( Dg, linsolve( L', hx ) ) );
+% XS = D.X - a * H' * gamma;
+
+%Put the smoothed data into the data object
+DS = Data(D.T,XS,D.K,D.S);

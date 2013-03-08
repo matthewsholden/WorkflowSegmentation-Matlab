@@ -66,8 +66,6 @@ end%while
 
 
 
-
-
 %Calculate the number of tools we have
 numTools = length(toolNames);
 
@@ -157,7 +155,7 @@ end%for
 
 %Calculate the total times
 for j=1:numTools
-    XTT{j} = XTT{j} - min( XTT{j} );
+    %XTT{j} = XTT{j} - min( XTT{j} );
 end%for
 
 

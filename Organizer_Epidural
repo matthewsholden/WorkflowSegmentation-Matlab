@@ -74,6 +74,12 @@ Overwrite
 MarkovScale
 Parameters/Markov/MarkovScale
 Overwrite
+EndCentroids
+Parameters/Training/End/EndCentroids
+Overwrite
+EndDeviation
+Parameters/Training/End/EndDeviation
+Overwrite
 Next
 Parameters/Transitions/Next
 Overwrite

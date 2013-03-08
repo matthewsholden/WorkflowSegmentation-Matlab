@@ -25,9 +25,14 @@ try
     end%for
     %If there are no errors, the number of accuracies is number of skills
     numAcc = length(skills);
-catch 
+catch
     %Determine the number of accuracies that correctly wrote
     numAcc = size( currAcc, 1 );
+    err = lasterror;
+    disp(err);
+    disp(err.message);
+    disp(err.stack);
+    disp(err.identifier);
 end%trycatch
 
 %Create a cell array of results

@@ -19,7 +19,7 @@ numProc = length(D_Train);
 maxTask = calcMax(D_Train,'Task');
 
 %Determine the number of clusters for each task and total
-centCount = ceil( PC.get('NumCentroids') * calcTaskSizes( D_Train )' );
+centCount = roundToMatch( PC.get('NumCentroids') * calcTaskSizes( D_Train )', PC.get('NumCentroids') );
 
 %Empty list of clustering centroids
 Centroids = [];
@@ -135,7 +135,7 @@ PC = PC.write();
 
 
 %11. Estimate the initial state vector
-EstPi = zeros( 1, maxTask );
+EstPi = ones( 1, maxTask );
 EstPi(1) = 1;   %Always start in task 1
 
 

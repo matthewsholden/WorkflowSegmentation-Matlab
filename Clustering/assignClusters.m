@@ -15,13 +15,6 @@ function [ix hasMember change] = assignClusters(dis,ix)
 %Calculate the number of points and the number of clusters
 [n k] = size(dis);
 
-%Initialize numMember to be a row vector of zeros for each cluster
-numMember = zeros(1,k);
-
-%Initialize change to be zero, and we will add as we notice that points
-%have changed their cluster
-change = 0;
-
 %Determine the smallest distance and assign the point to that
 %cluster
 [~, ixi] = min(dis,[],2);
@@ -29,7 +22,10 @@ change = 0;
 ixi = ixi';
 %If we have a different index than previously, indicate that a
 %change in clusters has been made
-if (~(ixi==ix))
+%Note: if [vector] is an AND over all elements
+if ( ixi == ix )
+    change = 0;
+else
     change = 1;
 end
 %Set the new cluster index
