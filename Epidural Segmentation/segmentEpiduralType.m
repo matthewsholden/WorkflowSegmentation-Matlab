@@ -4,78 +4,78 @@
 %Parameter skill: A string indicating skill (ie Novice, Expert)
 %Parameter procName: The name of the procedure (ie TR, TL, CR, CL)
 
-%Return status: Whether or not we have completed the function
-function acc = segmentEpiduralType(skill,technique)
+%Return acc: The accuracy of the task segmentation for each procedure
+%Return D_Test: 
+function [acc D_Test] = segmentEpiduralType(skill,technique)
 
 %create an organizer object for reading/writing files
 o = Organizer();
-
-%Delete all of the procedures and tasks at the beginning
-o.deleteAll('Procedure');
-o.deleteAll('Task');
-o.deleteAll('Skill');
-
 
 %Get the segmentation subjects and trials
 procMatrix = o.read([skill, ' ', technique]);
 trialMatrix = procMatrix(:,2:end)';
 subjMatrix = bsxfun(@times,~~trialMatrix,procMatrix(:,1)');
+
 %Convert these into appropriate arrays
 trialArray = trialMatrix(~~trialMatrix);
 subjArray = subjMatrix(~~subjMatrix);
 subjNum = length(subjArray);
 
-%First, write all of our data to file, except the first procedure
-for i=2:subjNum
-    NDITrackToRecord(subjArray(i),['Trial',num2str(trialArray(i))],skill,technique);
-end
 
-%disp('Procedure files created');
+%Create a cell array of procedural data objects
+D = cell(1,subjNum);
+D_Test = cell(1,subjNum);
+D_Train = cell(subjNum-1,subjNum);
+
+
+%Get a Data object for each procedure
+for i=1:subjNum
+    [Sty_Tr, ~, Ref_Tr] = NDITrackToDataTask(subjArray(i),['Trial',num2str(trialArray(i))],skill,technique);
+    Sty_Ref = Ref_Tr.relative( Sty_Tr, true, false);
+    Sty_Ent = Sty_Ref.calibration( o.read('ReferenceToEntry'), o.read('Identity') );
+    D{i} = Sty_Ent;
+end%for
+
+%disp('Data read from file');
+
+%Create a set of training procedures
+onlyTrain = ~eye(subjNum);
+for i=1:subjNum
+    D_Test{i} = Data( D{i}.T, D{i}.X, zeros(size(D{i}.K)), D{i}.S );
+    D_Train(:,i) = D(onlyTrain(:,i));    
+end%for
+
+%disp('Data organized into training & testing sets');
+
+%Initialize the vector of task segmentation accuracies
+acc = zeros(1,subjNum);
 
 %Iterate over all subjects (leave-one-out method)
 for subj = 1:subjNum
     
     %Now, train the Markov model algorithm
-    markovTrainLDA();
+    markovTrain( D_Train(:,subj) );
     
     %disp('Algorithm trained');
     
-    %Write the test procedure to file
-    NDITrackToRecord(subjArray(subj),['Trial',num2str(trialArray(subj))],skill,technique);
-    
-    %disp('Test procedure file created');
-    
-    %tic;    
     %Perform a Markov Model task segmentation on the test procedure
-    MD = markovSegment(subjNum);
-    %toc;
+    MD = markovSegment( D_Test{subj} );
     
     %disp('Procedure segmented');
 
-    %Now, we shall write the data we have acquired to the screen and
-    %store it in an array
-    disp(['   Subject ', num2str(subjArray(subj)), ' (Markov): ', num2str(segmentAccuracy(subjNum,MD.DK.X)) ])
-    acc(2,subj) = segmentAccuracy(subjNum,MD.DK.X);
+    %Calculate the accuracy of the task segmentation
+    segAcc = segmentAccuracy(D{subj}.K,MD.DK.X);
+    %Add the automatic segmentation to the test data
+    D_Test{subj} = Data( D_Test{subj}.T, D_Test{subj}.X, MD.DK.X, D_Test{subj}.S );
     
-    %Delete the testing procedure data
-    o.deleteNum('Procedure',subjNum);
-    o.deleteNum('Task',subjNum);
-    o.deleteNum('Skill',subjNum);
-    
-    %Delete the subjth procedural record
-    o.deleteNum('Procedure',subj);
-    o.deleteNum('Task',subj);
-    o.deleteNum('Skill',subj);
-    
-    %Read the current procedure from file
-    NDITrackToRecord(subjArray(subj),['Trial',num2str(trialArray(subj))],skill,technique);
-    
-    %disp('Training procedures organized');
+    %Write the accuracy to screen, and store it in vector
+    disp(['Subject ', num2str(subjArray(subj)), ': ', num2str(segAcc) ]);
+    acc(subj) = segAcc;
     
     %Clear the MarkovData object
     clear MD;
     
-end
+end%for
 
 %Clear the organizer object
 clear o;

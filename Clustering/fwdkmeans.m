@@ -11,7 +11,8 @@
 %Return cent: The locations of the centroids of each cluster
 %Return centDis: The distance from each point to each cluster
 %Return SSD: Sum of squared distances from each centroid to its points
-function [ix cent centDis SSD] = fwdkmeans(X,k,W)
+%Return clout: The clout (number of clustands) for each centroid
+function [ix cent centDis SSD clout] = fwdkmeans(X,k,W)
 
 %If the weighting is not specified, assume equal weighting
 if (nargin < 3)
@@ -34,14 +35,12 @@ for j=1:k
         %Choose the closest point to be the next centroid
         [~, newCent] = min( centDis );
     else
-        %Find the distance from each point to each centroid
-        centDis = interDistances(X,cent,W);
         %Choose the furthest point to be the next centroid
         [~, newCent] = max( min( centDis, [], 2 ) );
     end%if
     
     %Now, calculate the new clustering
-    [ix cent] = fwdkmeansLast(X,cent,W,newCent);
+    [ix cent centDis] = fwdkmeansLast(X,cent,W,newCent);
 
 end%for
 
@@ -51,6 +50,9 @@ centDis = interDistances( X, cent, W);
 %Calculate the sum of squared distances from each centroid to its points
 SSD = min( centDis, [], 2);
 SSD = sqrt( sum( SSD .^ 2 ) );
+
+%Calculate the clout for each point
+clout = numOccur(ix,1:k) / size(X,1);
 
 
 
@@ -66,7 +68,7 @@ SSD = sqrt( sum( SSD .^ 2 ) );
 %Return cent: The locations of the centroids of each cluster
 %Return centDis: The distance from each point to each cluster
 %Return SSD: Sum of squared distances from each centroid to its points
-function [ix cent] = fwdkmeansLast(X,cent,W,newCent)
+function [ix cent centDis] = fwdkmeansLast(X,cent,W,newCent)
 
 %Allocate the newest centroid to have location specified by the data point
 %with index new
@@ -84,10 +86,10 @@ empty = false;
 while (change ~= 0 || empty)
     
     %Calculate the cluster to which each point currently belongs
-    dis = interDistances( X, cent, W);
+    centDis = interDistances( X, cent, W);
     
     %Assign each data point to its cluster
-    [ix numMember change] = assignClusters(dis,ix);
+    [ix numMember change] = assignClusters(centDis,ix);
     
     %Ensure that each cluster has at least one member
     %Otherwise, reassign centroid to point farthest from all centroids

@@ -17,7 +17,7 @@ n = size(X,1);
 
 %Initialize the S and B vectors
 S(1,:) = X(1,:);
-B(1,:) = X(1,:) - X(2,:);
+B(1,:) = X(2,:) - X(1,:);
 
 %Iterate over all time and calculate
 for i=2:n

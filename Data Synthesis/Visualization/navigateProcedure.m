@@ -83,7 +83,7 @@ while (~exiter)
     clf
     hold on
     %Plot a plane representing the surface of the skin
-    %plane(Entry,norm(Entry)^2,[xmin xmax ymin ymax zmin zmax],[1 1 0]);
+    plane(Entry - Target,0,[xmin xmax],[1 1 0]);
     %Finally, plot the points in 3d space
     plot3(x,y,z,'LineWidth',4);
     %Plot a point at the location of the tip of the needle
@@ -91,8 +91,7 @@ while (~exiter)
     %Also, plot points for the insertion point and the target
     plot3(Entry(1),Entry(2),Entry(3),'og','MarkerSize',25);
     plot3(Target(1),Target(2),Target(3),'or','MarkerSize',5);
-    %Add a plane to represent the skin
-    plane(Entry - Target,0,[xmin xmax],[1 1 0]);
+    
     
     %First, set the axis of the plot such that the scale is not changing each
     %time we plot a point
@@ -107,7 +106,8 @@ while (~exiter)
     view(viewPoint)
     
     %Now, draw the navigation menu
-    choice = menu(['Time: ' num2str(D.T(j)) '/', num2str(D.T(n))],'|<','<<','<','>','>>','>|','<R','R>','Rv','R^','Exit');
+    choice = menu(['Time: ' num2str(D.T(j)) '/', num2str(D.T(n))], ...
+        '|<','<<','<','>','>>','>|','<R','R>','Rv','R^','Exit');
     
     if (choice == 1)
         j = 1;

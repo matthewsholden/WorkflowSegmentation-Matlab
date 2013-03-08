@@ -1,35 +1,35 @@
-%Given a set of key times corresponding to the key points, we will calculate
-%the interval index in which the time of interest lies
+%Given a set of times corresponding to points, calculate the interval of
+%times in which test point lies between
 
-%Parameters: Vector of key times, time of interest
-%Return: The interval index in which our time of interest lies
-function ki = getInterval(kt,ti)
+%Parameter endPoints: A vector of end points
+%Parameter test: A vector of test points to find the interval
 
-%Calculate the number of key points we have
-kn = length(kt);
-ki=0;
+%Return inv: The interval in which the test points lie
+function inv = getInterval(endPoints,testPoints)
 
-%First, calculate the interval in which we lie
-%Just use a linear search of kt to find the times between which the point
-%lies
-%i will be the interval number in which the point of interest resides
-for j=1:(kn-1)
-    %If we are between the current and next point then this is the interval
-    %index the point resides in and we will use for the spline
-    if ( ti >= kt(j) && ti <= kt(j+1) )
-        ki=j;
-    end
-    
-end
+%The number of time points and test points
+numEndPoints = length(endPoints);
+numTestPoints = length(testPoints);
 
 
-%Altermatively, we we do not lie in the range, assume that we are in
-%one of the end intervals because the lack of range lying might be due
-%to rounding error
-if ( ti < kt(1) )
-    ki=1;
-end
+%Replicate the matrics for comparison
+endPointsRep = repmat( endPoints, 1, numTestPoints);
+testPointsRep = repmat( testPoints', numEndPoints, 1);
 
-if ( ti > kt(kn) )
-    ki = kn-1;
-end
+
+%Determine the matrix of intervals
+%Note, classify in upper interval if on border
+invMatrix = endPointsRep < testPointsRep;
+
+
+%Create a matrix of interval labels
+invVector = ones( 1, numEndPoints);
+
+
+%The intervals are the product of this vector with the invMatrix
+inv = (invVector * invMatrix)';
+
+
+%Ensure that everything is within some interval
+inv(inv==numEndPoints) = numEndPoints - 1;
+inv(inv<=0) = 1;

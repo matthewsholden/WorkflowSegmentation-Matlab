@@ -5,12 +5,13 @@ Sense
 Next
 Orthogonal
 Derivative
-Mean
-Eigen
-Trans
+MeanPCA
+TransPCA
+TransLDA
 NumCentroids
 Centroids
 Weight
+Clout
 NumComponents
 Kalman
 Average

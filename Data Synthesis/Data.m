@@ -282,10 +282,10 @@ classdef Data
         
         
         %Weighted kmeans clustering over specified number of centroids
-        function [DC Centroids] = wmeans(D,k,W)
+        function [DC Centroids centDis SSD clout] = fwdkmeans(D,k,W)
             
             %Perform the clustering using the weighted wmeans method
-            [XC Centroids] = kmeansWeight(D.X,k,W);
+            [XC Centroids centDis SSD clout] = fwdkmeans(D.X,k,W);
             
             %Create a new object using the clusters as data now
             DC = Data(D.T,XC,D.K,D.S);
@@ -294,10 +294,13 @@ classdef Data
         
         
         %Calculate the closest cluster centroid to each point
-        function [DC dis] = findCluster(D,Centroids,W)
+        function [DC dis] = findCluster(D,Centroids,W,clout)
             
             %Calculate distance from each point to each centroid
             d = interDistances(D.X,Centroids,W);
+            
+            %Scale the distances by the centroud clouts
+            %d = bsxfun(@times, d, clout');
             
             %Calculate the nearest cluster and the distance to it
             [dis XC] = min(d,[],2);
@@ -428,8 +431,7 @@ classdef Data
             %If they have the same length, iterate over all observations
             for i = 1:D.count
                 %Calculate the transformation matrix for each Data object
-                M = dofToMatrix( D.X(i,:) );
-                
+                M = dofToMatrix( D.X(i,:) );                
                 %Now, calculate the relative dofs
                 X_Curr = matrixToDOF( C1 * M * C2 );
                 %Add the current observation to the matrix of observations

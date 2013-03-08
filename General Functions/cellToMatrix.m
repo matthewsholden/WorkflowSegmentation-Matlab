@@ -75,7 +75,7 @@ if (iscell(C))
     
     %Pad the matrices together in dimension one larger than the largest
     for i=1:length(C)
-        M = cat( largeDim, M, C{i} );
+        M = padcat( largeDim, M, C{i} );
     end%for
     
     %Otherwise, assign D to C

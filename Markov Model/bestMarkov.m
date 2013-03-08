@@ -1,41 +1,40 @@
-%This function will be responsible for determine which Markov Model, given
-%an array of Markov Models, was most likely to have produced the sequence
+%This function will determine which Markov Model, given a cell array of
+%Markov Models, most likely produced an observation sequence
 
 %Parameter seq: A single sequence of symbols (observations)
-%Parameter M: An array of candidate Markov Models
+%Parameter M: A cell array of candidate Markov Models
 %Parameter scale: A vector to which the probailities will be scaled
 
-%Return ix: The index of the Markov Model in the array to most likely have
-%prodcued the observed sequence
+%Return ix: Index of Markov Model most likely to produce observed sequence
+%Return prob: Probabilities of best Markov Model producing sequence
 function [ix prob] = bestMarkov(seq,M,scale)
 
-%Determine with what probability each Markov Model produced the sequence
+
+%Iterate over all Markov Models and determine individual probabilities
 prob = zeros(length(M),1);
-
-%Now, iterate over all Markov Models and determine the probabilities
-%individually
 for m=1:length(M)
+    
     %Determine the probability of the current Markov Model
-    stateProb = M{m}.statePath(seq);
+    logProb = M{m}.statePath(seq);
     %Now read this value into the probability vector
-    prob(m) = exp(stateProb);
+    prob(m) = exp(logProb);
+    
+end%for
+
+
+%Scale probabilities by the provided scaling
+if (nargin > 2)
+    prob = prob .* scale;
 end
 
-%Now, scale the probabilities appropriately if a scaling is provided
-if (nargin == 3)
-    prob = prob.*scale;
-end
 
 %Return the index of the most likely Markov Model
-%If there exist no entries in prob that are zero or greater then they are
-%all nonsensical, so we will return ix=0
-if (prob==-Inf)
+if ( isinf(prob) || ~prob )
     ix = 0;
-    %Return a probability of zero
     prob = 0;
 else
+    %Calculate index and probability of best Markov Model for data
     ix = maxIndex(prob);
-    %Also return the probability of this Markov Model reproducing the data
     prob = prob(ix);
-end
+end%if
 

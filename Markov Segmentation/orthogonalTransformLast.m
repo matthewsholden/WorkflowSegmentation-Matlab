@@ -8,7 +8,7 @@
 function DO = orthogonalTransformLast(D,orthParam)
 
 %If necessary, read the parameters for the orthogonal projection
-if (nargin < 4)
+if (nargin < 2)
     %Create an organizer
     o = Organizer();
     %Read from file the parameters

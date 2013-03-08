@@ -14,7 +14,7 @@ classdef MarkovModel
         A;
         %The matrix governing the emission probabilities
         B;
-    end
+    end %Properties
     
     %The methods required for the Markov Model are: (getPi, getA, getB, getParam)
     methods
@@ -25,7 +25,7 @@ classdef MarkovModel
             M.pi = pi;
             M.A = A;
             M.B = B;
-        end
+        end%function
         
         %Allow the user to create initial parameters which are uniform such
         %that a training method may follow (must input the required number
@@ -38,41 +38,41 @@ classdef MarkovModel
             %where each row is required to add to unity
             M.A = ones(states,states) ./ states;
             M.B = ones(states,symbols) ./ symbols;
-        end
+        end%function
         
         %We will allow a method to read the parameters of the Markov Model
         %from a file
         function M = read(M)
             %Use the readMarkov function we have written
             [M.pi M.A M.B] = readMarkov(M.name);
-        end
+        end%function
         
         %We will allow a method to write the parameters of the Markov Model
         %to file such that we can save the parameters
         function M = write(M)
             %Use the writeMarkov function which we have written
             writeMarkov(M.name,M.pi,M.A,M.B);
-        end
+        end%function
         
         %This method returns the name of the Markov Model
         function res = getName(M)
             res = M.name;
-        end
+        end%function
         
         %This method returns the initial state distribution
         function res = getPi(M)
             res = M.pi;
-        end
+        end%function
         
         %This method returns the transition probability matrix
         function res = getA(M)
             res = M.A;
-        end
+        end%function
         
         %This method returns the emission probability matrix
         function res = getB(M)
             res = M.B;
-        end
+        end%function
         
         %Finally, this method returns the transition and emission matrices
         %concatenated with the initial state distribution (because this is
@@ -93,7 +93,7 @@ classdef MarkovModel
             res1(1,2:end) = M.pi;
             
             res2(2:end,:) = M.B;
-        end
+        end%function
         
         %Return the transition probability matrix with the concatenated
         %initial state distribution vector
@@ -102,7 +102,7 @@ classdef MarkovModel
             %values
             [AP BP] = M.getParam();
             res = AP;
-        end
+        end%function
         
         %Return the emission probability matrix with the concatenated
         %initial state distribution vector
@@ -111,14 +111,14 @@ classdef MarkovModel
             %values
             [AP BP] = M.getParam();
             res = BP;
-        end
+        end%function
         
         %Given the parameters, generate a random sequence of observations
         %and output them
         function res = seqGen(M,length)
             %Use the hmmgenerate algorithm
             res = hmmgenerate(length, M.getAP(), M.getBP());
-        end
+        end%function
         
         %Now, we want to be able to do all three important algorithms given
         %a sequence which has been inputted and the parameters stored in
@@ -130,15 +130,15 @@ classdef MarkovModel
         %observations
         function res = seqProb(M,seq)
             %Use the hmmprobMulitple algorithm we have implemented
-            res = hmmprobMultiple(seq,M.getPi(),M.getA(),M.getB());
-        end
+            res = hmmProbMultiple(seq,M);
+        end%function
         
         %This method will use the viterbi algorithm to determine the most
         %likely state path to have produced the observations
         function [prob path] = statePath(M,seq)
             %Use the hmmviterbi algorithm
-            [prob path] = hmmstates2(seq,M.getPi(),M.getA(),M.getB());
-        end
+            [prob path] = hmmStates(seq,M);
+        end%function
         
         %This method will be used to train the algorithm via the Baum-Welch
         %method...
@@ -149,22 +149,22 @@ classdef MarkovModel
             %If we have a predefined size, keep it
             if (nargin < 3)
                 pseudoPi = zeros(size(M.getPi()));
-            end
+            end%if
             if (nargin < 4)
                 pseudoA = zeros(size(M.getA()));
-            end
+            end%if
             if (nargin < 5)
                 pseudoB = zeros(size(M.getB()));
-            end
+            end%if
             
             %Train the Markov Model
-            [trainPi trainA trainB] = hmmtrainMultiple(seq,M.getPi(),M.getA(),M.getB(),pseudoPi,pseudoA,pseudoB);
+            trainM = hmmTrainMultiple(seq,M.getPi(),M.getA(),M.getB(),pseudoPi,pseudoA,pseudoB);
 
             %Now, we have the unconcatenated matrices
-            M.A = trainA;
-            M.pi = trainPi;
-            M.B = trainB;
-        end
+            M.pi = trainM.getPi();
+            M.A = trainM.getA();
+            M.B = trainM.getB();
+        end%function
         
         %This method will be used to estimate the parameters of the Markov
         %Model using the viterbi training method (where we know the state
@@ -176,23 +176,23 @@ classdef MarkovModel
             %If we have a predefined size, keep it
             if (nargin < 4)
                 pseudoPi = zeros(size(M.getPi()));
-            end
+            end%if
             if (nargin < 5)
                 pseudoA = zeros(size(M.getA()));
-            end
+            end%if
             if (nargin < 6)
                 pseudoB = zeros(size(M.getB()));
-            end
+            end%if
             
             %Estimate the Markov Model parameters
-            [estPi estA estB] = hmmestimateMultiple(seq,states,pseudoPi,pseudoA,pseudoB);
+            estM = hmmEstimateMultiple(seq,states,pseudoPi,pseudoA,pseudoB);
             
             %Now, we have the unconcatenated matrices
-            M.pi = estPi;
-            M.A = estA;
-            M.B = estB;
-        end
+            M.pi = estM.getPi();
+            M.A = estM.getA();
+            M.B = estM.getB();
+        end%function
         
-    end
+    end %Methods
     
-end
+end %Class

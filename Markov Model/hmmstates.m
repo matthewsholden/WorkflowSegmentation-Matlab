@@ -1,62 +1,64 @@
-%This function will, given a sequence of observations, and an initial state
-%distribution, a transition matrix, and an observation matrix, determine
-%what sequences of states is most likely to have produced the sequence of
-%observations, and what the probability of this sequence of states
-%reproducing this sequence of observations is.
+%This function will calculate what sequence of states was most likely to
+%have produced the sequence of observations and the probability
 
-%Parameter obs: A sequence of observations found
-%Parameter Pi: An initial state distribution of the Markov Model
-%Parameter A: A matrix of state transitions
-%Parameter B: A matrix of observation probabilities for each state
+%Parameter seq: The sequence of observations
+%Parameter MM: The Markov Model being tested
 
-%Return stateProb: The state optimized log probability that the sequence of
-%observations occurred
-%Return stateSeq: The most likely sequence of states to have produced the
-%observed sequence of observations
-function [stateProb stateSeq] = hmmstates(obs,pi,A,B)
+%Return stateProb: State optimized log probability of observation sequence
+%Return stateSeq: State sequence most likely to yield observation sequence
+function [stateProb stateSeq] = hmmStates(seq,MM)
 
-%Let n be the length of the observation sequence
-n = length(obs);
+
+%Calculate the observation sequence length
+n = length(seq);
+
 
 %If there are no observations, then return [1 []]
 if ( n == 0 )
-   [stateProb stateSeq] = max(log(pi));
+   stateProb = 1;
+   stateSeq = [];
    return;
-end
+end%if
 
-%Initialize our variables of note
-delta = zeros(n,length(A));
-psi = zeros(n,length(A));
 
-%Calculate the log of everything such that we can use addition, rather than
-%multiplication to calculate probabilities such that we do not get
-%ridiculously small numbers. Avoid rounding errors.
-logPi = log(pi);    logA = log(A);  logB = log(B);
+%Calculate the number of states and symboles from the matrix B
+[numState numSymbol] = size(MM.getB());
 
-%First, initialize delta using the initial conditions provided by the
-%initial state distribution
-delta(1,:) = logPi + logB(:,obs(1))';
+
+%Initialize the delta and psi probability variables
+delta = zeros( n, numState );
+psi = zeros( n, numState );
+
+
+%Use logs to avoid rounding errors (replace addition with mulitplication)
+logPi = log(MM.getPi());    logA = log(MM.getA());  logB = log(MM.getB());
+
+
+%Initialize delta using initial state distribution
+delta(1,:) = logPi + logB(:,seq(1))';
 psi(1,:) = zeros( size(logPi) );
 
-%Now, recurse over all time
+
+%Iterate over all times
 for t = 2:n
-   %Calculate the best delta for the next step
+  
+   %Calculate the most likely state for each observation
+   [maxProb maxIndex] = max( bsxfun( @plus, delta(t-1,:)', logA ) );
    
-   %First, calculate the best i for each j
-   [maxProb maxIndex] = max( bsxfun(@plus,delta(t-1,:)',logA) );
-   
-   %Now, calculate delta and psi
-   delta(t,:) = maxProb + logB(:,obs(t))';
+   %Calculate delta and psi
+   delta(t,:) = maxProb + logB(:,seq(t))';
    psi(t,:) = maxIndex;
     
-end
+end%for
 
-%Finally, terminate the sequence, and determining the state-optimized
-%probability and the best state path
+
+%Terminate the sequence; determinine state-optimized probability and path
 [stateProb stateSeq(n)] = max( delta(n,:) );
 
-%Now, we must backtrace the sequence
+%Backtrace the sequence to find the most likely state at each step
 for t = (n-1):-1:1
+    
     %Use the value of psi to determine the most likely state path
-    stateSeq(t) = psi(t+1,stateSeq(t+1));
-end
+    stateSeq(t) = psi( t+1, stateSeq(t+1) );
+    
+end%for

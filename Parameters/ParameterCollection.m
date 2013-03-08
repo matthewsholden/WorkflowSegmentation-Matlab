@@ -41,40 +41,40 @@ classdef ParameterCollection
         
         
         %Set the parameter value
-        function P = set(P,name,value)
+        function PC = set(PC,name,value)
             %Determine the number of the parameter we wish to set
-            setNum = P.search(name);
+            setNum = PC.search(name);
             %And set this numbered parameter to the value
-            P.Params{setNum}.setValue(value);
+            PC.Params{setNum} = PC.Params{setNum}.setValue(value);
         end%function
         
         
         %Get what the value of the parameter is
-        function value = get(P,name)
+        function value = get(PC,name)
             %Determine the number of the parameter we wish to get
-            getNum = P.search(name);
+            getNum = PC.search(name);
             %Set value to the value of this parameter
-            value = P.Params{getNum}.Value;
+            value = PC.Params{getNum}.Value;
         end%function
         
         
-        %Read the parameter from file
-        function P = read(P,name)
+        %Read the parameters from file
+        function PC = read(PC)
             o = Organizer();
-            %Determine the number of the parameter we wish to read
-            readNum = P.search(name);
-            %Read the parameter for the name from file
-            P.Params{readNum} = o.read(name);
+            for p = 1:PC.numParam
+                %Read the parameter for the name from file
+                PC.Params{readNum} = Parameter( PC.paramNames{p}, o.read( PC.paramNames{p} ) );
+            end%for
         end%function
         
         
-        %Write the parameter to file
-        function P = write(P,name)
+        %Write the parameters to file
+        function PC = write(PC)
             o = Organizer();
-            %Determine the number of the parameter we wish to write
-            writeNum = P.search(name);
-            %Set value to the value of this parameter
-            P = o.write(name, P.Params{writeNum}.Value );
+            for p = 1:PC.numParam
+                %Write the parameter for the name to file
+                o.write( PC.paramNames{p}, PC.Params{p}.Value );
+            end%for
         end%function
         
                 
@@ -86,6 +86,6 @@ classdef ParameterCollection
         end%function
         
         
-    end%function
+    end%methods
     
-end%function
+end%class

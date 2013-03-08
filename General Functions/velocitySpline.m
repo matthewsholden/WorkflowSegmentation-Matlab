@@ -5,7 +5,8 @@
 %over other intervals
 
 %Parameter T: A vector of points in time
-%Parameter X: A vector of points in value, and 
+%Parameter X: A vector of points in value
+%Parameter V: A vector of velocities at each point
 %Parameter t: A vector of points at which we wish to evaluate the spline
 
 %Return x: The value of the spline at the point at which we wish to evaluate
@@ -16,7 +17,7 @@ function x = velocitySpline(T,X,V,t)
 [n, dof] = size(X);
 
 %First, calculate the interval in which we lie
-inv = getInterval3(T,t);
+inv = getInterval(T,t);
 
 %Now, calculate the point values and velocities at the endpoint of the
 %interval

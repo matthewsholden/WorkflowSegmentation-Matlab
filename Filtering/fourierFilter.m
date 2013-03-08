@@ -25,8 +25,6 @@ else %hat filter
     H = fourX <= cut * fourL;
 end%if
 
-plot(H)
-
 %Apply the filter
 X_Fourier = bsxfun(@times, X_Fourier, H);
 

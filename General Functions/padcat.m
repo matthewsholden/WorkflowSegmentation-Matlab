@@ -4,8 +4,7 @@
 %Parameter dir: The direction along which we wish to concatenate
 %Parameter A: The first matrix we wish to concatenate
 %Parameter B: The second matrix we wish to concatenate
-%Parameter value: The value we want to pad with (if none is specified, then
-%assume zero)
+%Parameter value: The value we want to pad with
 
 %Return C: The concatenated arrays
 function C = padcat(dir,A,B,value)
@@ -26,13 +25,12 @@ ndimB = length(szB);
 
 %Determine the smaller dimension and pad
 if (ndimA < ndimB)
-    szA = padarray(szA,[0 szB-szA],1,'post');
+    szA = padarray(szA,[0 ndimB-ndimA],1,'post');
 elseif (ndimA > ndimB)
-    szB = padarray(szB,[0 szA-szB],1,'post');
+    szB = padarray(szB,[0 ndimA-ndimB],1,'post');
 end
 
-%Now, that the dimensionalities are equal, determine how we need to pad
-%each
+%Dimensionalities are equal; determine how to pad each
 padA = max(0,szB - szA);
 padB = max(0,szA - szB);
 
@@ -43,8 +41,7 @@ padA(dir) = 0;  padB(dir) = 0;
 A = padarray(A,padA,value,'post');
 B = padarray(B,padB,value,'post');
 
-%Finally, concatenate the padded matrices using the regular cat function in
-%the desired dimension
+%Concatenate padded matrices using cat function in desired dimension
 C = cat(dir,A,B);
     
     

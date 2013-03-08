@@ -214,10 +214,10 @@ classdef MarkovData
             DO_Current = DV_Current.orthogonalLast(orthParam);
             
             %Perform a pca transform according to the parameters
-            DP_Current = DO_Current.pcaTransform(M.PC.get('Eigen'),M.PC.get('Mean'));
+            DP_Current = DO_Current.pcaTransform(M.PC.get('TransPCA'),M.PC.get('MeanPCA'));
             
             %Determine the cluster to which the data point belongs
-            DC_Current = DP_Current.findCluster(M.PC.get('Centroids'),M.PC.get('Weight'));
+            DC_Current = DP_Current.findCluster(M.PC.get('Centroids'),M.PC.get('Weight'),M.PC.get('Clout'));
             
             %Assign the found cluster to the vector of all clusters
             C_Current = DC_Current.X;
@@ -244,7 +244,8 @@ classdef MarkovData
             allowScale = M.PC.get('Allow');
             
             %Calculate the most likely state sequence
-            [~, K_Current] = hmmstates(XC, M.MProc.pi, M.MProc.A .* allowScale, M.MProc.B);
+            M_Allow = MarkovModel('Allow',M.MProc.pi, M.MProc.A .* allowScale, M.MProc.B);
+            [~, K_Current] = M_Allow.statePath(XC);
             
             %Grab the last state of the sequence
             K_Current = K_Current(end);

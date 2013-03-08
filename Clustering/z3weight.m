@@ -1,67 +1,45 @@
 %This function will compute the cluster dimension weightings using the z3
 %score as proposed by Steinley in 2008.
 
-%Parameter X: A matrix containing the points that we wish to cluster
+%Parameter X: A cell array of data classes to be clustered
 
-%Return W: The weighting which will benefit the clustering the most
+%Return W: The weighting associated with each dimension of the space
 function W = z3weight(X)
 
+
 %Compute the means, variances, and ranges for each dimension of the data
-mn = mean(X);
-vr = var(X);
+vr = var(X,1);
 sd = sqrt(vr);
-rn = range(X);
+rn = range(X,1);
 
-%If the variance is too small and will cause roundoff error, then just
-%ignore the dimension
-for j=1:size(X,2)
-    %Test if the variance in the dimension is less than the machine
-    %epsilon, and if it is, then we can say the variance is effectively
-    %zero, because this would cause roundoff troubles anyway
-    if (vr(j) < eps)
-        vr(j) = 0;
-        sd(j) = 0;
-        rn(j) = 0;
-    end
-end
 
-%Compute the standard deviation after zeroing any insignificant variances
+%Small variances will create roundoff error, assume zero if too small
+vr( vr < eps ) = 0;
+sd( vr < eps ) = 0;
+rn( vr < eps ) = 0;
 
 
 %Now, compute the measure M from our variance and range
-M = 12 * vr ./ (rn .^ 2);
+M = vr ./ (rn .^ 2);
 
-%Calculate the index of the minimum value of M
+
+%Calculate the dimension with the smallest measure M
 mix = minIndex(M);
+
 
 %Compute the relative clusterability measure of the dimension
 RC = M / M(mix);
 
-%Initialize the matrix of z1 scores to have the same size as the initial
-%matrix of points
-z1 = zeros(size(X));
-%Now, compute the z1 score for each value
-for i=1:size(X,1)
-    z1(i,:) = (X(i,:) - mn) ./ sd;
-end
 
-%Compute the range of each dimension in z1
-rnz1 = range(z1);
+%Compute the standardized range of each dimension
+rnz1 = rn ./ sd;
 
-%Initialize the vector of weightings
-W = zeros(1,size(X,2));
-%Finally, calculate the z3 weightings
-for j=1:size(X,2)
-    %If the variance is non-zero, else ignore this dimension
-    if (sd(j) ~= 0)
-        W(j) = sqrt( ( RC(j) * rnz1(mix).^2 ) ./ ( vr(j) .* rnz1(j).^2 ) );
-    end
-end
 
-%Normalize the weightings
+%Calculate the z3 weightings
+W = sqrt( ( RC .* rnz1(mix).^2 ) ./ ( vr .* rnz1.^2 ) );
+W( isnan(W) ) = 0;
+
+
+%Normalize weighting
 W = normr(W);
-
-
-
-
 
