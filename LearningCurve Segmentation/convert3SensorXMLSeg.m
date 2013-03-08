@@ -14,7 +14,7 @@ subjDir = dir([dirPath, '/', subjName, '*']);
 numSubj = length(subjDir);
 
 %The names of the relevant tools
-toolNames = {'StylusTipToReference','StylusToNeedleBase'};
+toolNames = {'StylusTipToReference'};%,'StylusToNeedleBase'};
 numTools = length(toolNames);
 
 %Iterate over all subjects

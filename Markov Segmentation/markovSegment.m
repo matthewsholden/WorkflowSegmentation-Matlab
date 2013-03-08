@@ -15,6 +15,6 @@ M = MarkovData();
 for j = 1:D_Test.count
    
    %Add the data point to the MarkovData Model
-   M = M.addPoint( D_Test.T(j) , D_Test.X(j,:));
+   M = M.addPoint( D_Test.T(j) , D_Test.X(j,:));  
    
 end

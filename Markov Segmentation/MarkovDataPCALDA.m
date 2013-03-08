@@ -3,7 +3,7 @@
 %run in real-time. Run the task segmentation algorithm every time we
 %receive a new data point, as controlled by the getLDPoint function
 
-classdef MarkovData
+classdef MarkovDataPCALDA
     
     
     
@@ -35,8 +35,6 @@ classdef MarkovData
         currState;
         prevTask;
         
-        %Whether or not each task has been completed
-        complete;        
 
         %The Markov Model representing the procedure (the outer Markov
         %Model)
@@ -65,7 +63,7 @@ classdef MarkovData
         %This constructor will create the object. We will already know the
         %number of degrees of freedom, but will not know how many data
         %points will be produced
-        function M = MarkovData()
+        function M = MarkovDataPCALDA()
             
             %Initialize count to be zero
             M.count = 0;
@@ -92,9 +90,6 @@ classdef MarkovData
             %And finally create the procedure Markov Model
             M.MProc = MarkovModel('Markov', 0, 0, 0);
             M.MProc = M.MProc.read();
-            
-            %None of the tasks have been completed initially
-            M.complete = zeros( 1, size( M.PC.get('EndCentroids'), 1 ) );
             
         end%function
        
@@ -156,7 +151,6 @@ classdef MarkovData
             KK(M.count,:) = 0;
             M.DK = Data(TK,XK,KK,M.DK.S);
             
-
         end%function
         
         
@@ -222,17 +216,11 @@ classdef MarkovData
             %Perform a pca transform according to the parameters
             DP_Current = DO_Current.pcaTransform(M.PC.get('TransPCA'),M.PC.get('MeanPCA'));
             
-            %Iterate over all rows in end centroids matrix
-            updated = zeros( 1, size( M.PC.get('EndCentroids'), 1 ) );
-            endDev = M.PC.get('EndDeviation');
-            endCent = M.PC.get('EndCentroids');
-            for i = 1:size( M.PC.get('EndCentroids'), 1 )
-                updated(i) = ~sum( abs( DP_Current.X - endCent(i,:) ) > endDev(i,:) );
-            end%for
-            M.complete = M.complete | updated;
+            %Perform the LDA transform
+            DL_Current = DP_Current.ldaTransform(M.PC.get('TransLDA'));
             
             %Determine the cluster to which the data point belongs
-            DC_Current = DP_Current.findCluster(M.PC.get('Centroids'),M.PC.get('Weight'),M.PC.get('Clout'));
+            DC_Current = DL_Current.findCluster(M.PC.get('Centroids'),M.PC.get('Weight'),M.PC.get('Clout'));
             
             %Assign the found cluster to the vector of all clusters
             C_Current = DC_Current.X;

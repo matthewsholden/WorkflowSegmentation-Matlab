@@ -19,11 +19,5 @@ end
 %intervals
 len = (b-a)/(n-1);
 
-%Initialize our split point vector
-split = zeros(1,n);
-
-%Iterate over all n points
-for i=1:n
-    %Calculate the splitting point
-    split(i) = a + (i-1)*len;
-end
+%Create a split point vector using the length of interval
+split = a:len:b;

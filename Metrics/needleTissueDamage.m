@@ -21,6 +21,7 @@ for i = 1:D.count
     
     %Calculate whether the current point is in the prism
     [currInPrism currEntry] = prism( corner, dofToMatrix( D.X(i,:) ) );
+    currEntry = currEntry';
     currTip = D.X(i,~Q);
     
     %If both the current and previous are in prism, then calculate sweep

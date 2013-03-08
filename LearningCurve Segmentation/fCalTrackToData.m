@@ -155,6 +155,12 @@ for i=1:length(name)
 end%for
 
 
+%Calculate the total times
+for j=1:numTools
+    XTT{j} = XTT{j} - min( XTT{j} );
+end%for
+
+
 %Now that we have determined the data points, time stamps and segmentation
 %points, we just need to determine the task at each time step. Note that
 %the segmentation points indicate the end of the task.

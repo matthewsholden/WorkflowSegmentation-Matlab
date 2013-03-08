@@ -12,7 +12,10 @@ NumCentroids
 Centroids
 Weight
 Clout
+EndCentroids
+EndDeviation
 NumComponents
+MarkovScale
 Kalman
 Average
 Fourier

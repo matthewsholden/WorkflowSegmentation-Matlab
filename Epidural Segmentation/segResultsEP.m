@@ -39,7 +39,7 @@ for i = 1:numAcc
 end%for
 
 %Create a cell array of parameters
-A = cell( PC.numParam, size(R,2) );
+A = cell( PC.numParam, 2);
 for i=1:PC.numParam
     A{i,1} = PC.paramNames{i};
     A{i,2} = PC.Params{i}.Value;

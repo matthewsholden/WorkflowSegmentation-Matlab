@@ -19,7 +19,7 @@ numProc = length(D_Train);
 maxTask = calcMax(D_Train,'Task');
 
 %Determine the number of clusters for each task and total
-centCount = ceil( PC.get('NumCentroids') * calcTaskSizes(  D_Train )' );
+centCount = ceil( PC.get('NumCentroids') * calcTaskSizes( D_Train )' );
 
 %Empty list of clustering centroids
 Centroids = [];
@@ -39,7 +39,6 @@ DV = cell(1,numProc);
 DO = cell(1,numProc);
 DP = cell(1,numProc);
 DC = cell(1,numProc);
-
 
 
 %0. Smooth/Remove outliers using filtering
@@ -116,12 +115,18 @@ for p = 1:numProc
 end%for
 
 
+%8. Calculate the end point of each task and the end deviation
+[endCentroids endDeviation] = calcEndCentroids(DP);
+
+
 %9. Set the parameters in the parameter collection and write it
 PC = PC.set( 'Centroids', Centroids );
 PC = PC.set( 'Weight', Weight );
 PC = PC.set( 'Clout', Clout );
 PC = PC.set( 'TransPCA', TransPCA );
 PC = PC.set( 'MeanPCA', MeanPCA );
+PC = PC.set( 'EndCentroids', endCentroids );
+PC = PC.set( 'EndDeviation', endDeviation );
 PC = PC.write();
 
 
@@ -139,13 +144,14 @@ EstA = PC.get('Sense');
 
 
 %13. Estimate the observation probability matrix
-EstB = ones( maxTask, sum( centCount ) ) / maxTask;
+EstB = ones( maxTask, sum( centCount ) );
 
 
-%14. Ensure that all of the matrices are normalized (required by MMs)
-EstPi = normr(EstPi);
-EstA = normr(EstA);
-EstB = normr(EstB);
+%14. Scale the initial Markov Model probabilities
+markovScales = PC.get('MarkovScale');
+EstPi = EstPi * markovScales(1);
+EstA = EstA * markovScales(2);
+EstB = EstB * markovScales(3);
 
 
 %15. Estimate the Markov Model using the estimates of matrices
@@ -156,6 +162,7 @@ MProc.write();
 
 %Clear the objects now that we are done with it
 clearvars;
+
 
 %Indicate this function is complete
 status = 1;

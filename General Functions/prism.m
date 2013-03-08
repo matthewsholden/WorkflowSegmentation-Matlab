@@ -11,7 +11,7 @@ function [inPrism X] = prism(corner,M)
 o = Organizer();
 
 %Calulate the needle-tip position
-[needleTip needleBase] = matrixToPoints(M,o.read('NeedleOrientation'));
+[needleTip needleBase] = matrixToPoints( M, o.read('NeedleOrientation') );
 
 %Calculate vector indicating where needle base emerges from tip
 needleOr = needleBase - needleTip;
@@ -57,5 +57,10 @@ end%if
 
 %The needle pierces the skin at the smallest positive t value
 t = min(t(t>=0));
-X = needleTip + t * needleOr;
+
+X = needleTip;
+%If the needle does not extend into the gel, then just return the needletip
+if ( ~isempty(t) )
+    X = X + t * needleOr;
+end%if
 

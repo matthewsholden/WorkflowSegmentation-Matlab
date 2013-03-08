@@ -5,7 +5,7 @@
 %Parameter procName: The name of the procedure (ie TR, TL, CR, CL)
 
 %Return acc: The accuracy of the task segmentation for each procedure
-%Return D_Test: 
+%Return D_Test: The automatically segmented procedures
 function [acc D_Test] = segmentEpiduralType(skill,technique)
 
 %create an organizer object for reading/writing files

@@ -15,6 +15,12 @@ S = zeros(size(X));
 B = zeros(size(X));
 n = size(X,1);
 
+%If we only have one point, return it
+if (D.count <= 1)
+    DS = D;
+    return;
+end%if
+
 %Initialize the S and B vectors
 S(1,:) = X(1,:);
 B(1,:) = X(2,:) - X(1,:);

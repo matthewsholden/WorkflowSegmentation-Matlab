@@ -428,7 +428,7 @@ classdef Data
             %Create an empty vector of relative observations
             X_Cal = [];
             
-            %If they have the same length, iterate over all observations
+            %Iterate over all observations
             for i = 1:D.count
                 %Calculate the transformation matrix for each Data object
                 M = dofToMatrix( D.X(i,:) );                
@@ -440,6 +440,29 @@ classdef Data
             
             %Output the data object with relative observations
             D_Cal = Data(D.T, X_Cal, D.K, D.S);
+            
+        end%function
+        
+        
+        %Convert a Data object of dofs to a Data object of needle endpoints
+        function D_Points = dofToPoints(D,needleOr)
+            
+            %Create an empty matrix of points
+            X_Points = [];
+            
+            %Iterate over all observations
+            for i = 1:D.count
+                %Calculate the transformation matrix for each Data object
+                M = dofToMatrix( D.X(i,:) );                
+                %Now, calculate the points
+                [X_Curr1 X_Curr2] = matrixToPoints( M, needleOr);
+                X_Curr = cat(2, X_Curr1', X_Curr2');
+                %Add the current observation to the matrix of observations
+                X_Points = cat(1, X_Points, X_Curr);
+            end%for
+            
+            %Output the data object with relative observations
+            D_Points = Data(D.T, X_Points, D.K, D.S);
             
         end%function
         

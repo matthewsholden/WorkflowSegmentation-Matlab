@@ -71,6 +71,9 @@ Overwrite
 NumComponents
 Parameters/PCA/NumComponents
 Overwrite
+MarkovScale
+Parameters/Markov/MarkovScale
+Overwrite
 Next
 Parameters/Transitions/Next
 Overwrite

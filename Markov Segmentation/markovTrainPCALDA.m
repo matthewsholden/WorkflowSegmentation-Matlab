@@ -4,7 +4,7 @@
 %Parameter D_Train: A cell array of training data objects
 
 %Return status: Whether or not the procedure completed successfully
-function status = markovTrain(D_Train)
+function status = markovTrainPCALDA(D_Train)
 
 %Indicate that the procedure is not finished
 status = 0;
@@ -38,8 +38,8 @@ DS = cell(1,numProc);
 DV = cell(1,numProc);
 DO = cell(1,numProc);
 DP = cell(1,numProc);
+DL = cell(1,numProc);
 DC = cell(1,numProc);
-
 
 
 %0. Smooth/Remove outliers using filtering
@@ -48,7 +48,7 @@ for p = 1:numProc
 end%for
 
 
-%Add the velocities to the Data
+%Add the velocities/accelerations/etc to the Data
 for p = 1:numProc
     %Initialize empty data with velocity object
     DV{p} = DS{p};
@@ -68,7 +68,7 @@ end%for
 
 
 %2. Principal Component Analysis
-[~, TransPCA MeanPCA] = DO_Cat.pca(PC.get('NumComponents'));
+[~, TransPCA MeanPCA] = DO_Cat.pca( PC.get('NumComponents') );
 
 
 %3. Apply calculated Principal Component Analysis
@@ -93,25 +93,35 @@ for t = 1:maxTask
 end%for
 
 
+%4. Perform the linear discriminant analysis
+[DL_Task_Cat TransLDA] = DO_Cat.lda(DP_Task_Cat);
+
+
 %6. Calculate weighting for each dimension in clustering
-[~, XP_Task_Cat] = DataCell(DP_Task_Cat);
-Weight = classScatterWeight(XP_Task_Cat);
+[~, XL_Task_Cat] = DataCell(DL_Task_Cat);
+Weight = classScatterWeight(XL_Task_Cat);
+%Weight = ones( size(Weight) );
 
 
 %7. Perform clustering for each task separately
-for t =  1:maxTask
+for t = 1:maxTask
     %For each task calculate the centroids using the w-means algorithm
-    [~, taskCent{t}, ~, ~, taskClout{t}] = DP_Task_Cat{t}.fwdkmeans( centCount(t), Weight );
+    [~, taskCent{t}, ~, ~, taskClout{t}] = DL_Task_Cat{t}.fwdkmeans( centCount(t), Weight );
     %Concatenate with the list of centroids
     Centroids = cat( 1, Centroids, taskCent{t} );
     Clout = cat( 1, Clout, taskClout{t} );
+end%for
+
+%3. Apply calculated Linear Discriminant Analysis
+for p=1:numProc
+    DL{p} = DP{p}.ldaTransform(TransLDA);
 end%for
 
 
 %8. Perform clustering for each procedure, using cluster centroids
 for p = 1:numProc
     %Determine the cluster to which the point belongs (ie observation)
-    DC{p} = DP{p}.findCluster( Centroids, Weight, Clout );
+    DC{p} = DL{p}.findCluster( Centroids, Weight, Clout );
 end%for
 
 
@@ -121,6 +131,7 @@ PC = PC.set( 'Weight', Weight );
 PC = PC.set( 'Clout', Clout );
 PC = PC.set( 'TransPCA', TransPCA );
 PC = PC.set( 'MeanPCA', MeanPCA );
+PC = PC.set( 'TransLDA', TransLDA );
 PC = PC.write();
 
 
@@ -129,7 +140,7 @@ PC = PC.write();
 
 
 %11. Estimate the initial state vector
-EstPi = zeros(1,maxTask);
+EstPi = zeros( 1, maxTask );
 EstPi(1) = 1;   %Always start in task 1
 
 
@@ -148,8 +159,8 @@ EstB = normr(EstB);
 
 
 %15. Estimate the Markov Model using the estimates of matrices
-MProc = MarkovModel('Markov',0,0,0);
-MProc = MProc.estimate(XC,KC,EstPi,EstA,EstB);
+MProc = MarkovModel( 'Markov', 0, 0, 0 );
+MProc = MProc.estimate( XC, KC, EstPi, EstA, EstB );
 MProc.write();
 
 
@@ -158,4 +169,3 @@ clearvars;
 
 %Indicate this function is complete
 status = 1;
-
