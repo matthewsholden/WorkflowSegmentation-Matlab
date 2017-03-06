@@ -40,6 +40,7 @@ C = R.getChildNodes();
 
 %Read the task segmentation from the segmentation file
 [transT transK] = readManSegLP(segFile,trial);
+disp( [ 'Task: ', num2str( transK' ) ] );
 
 
 %We will have a cell array of attributes

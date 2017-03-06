@@ -39,6 +39,7 @@ end%if
 %Get a Data object for each procedure
 toolNames = {'Tool_1'};
 for i=1:subjNum
+    disp( [ 'Subject: ', num2str( subjArray(i) ) ] );
     Sty_Ref = AscTrackToDataTask(subjArray(i),[pracTri,num2str(trialArray(i))],skill,technique,toolNames);
     StyTip_RAS = Sty_Ref{1}.calibration( o.read('ReferenceToRAS'), o.read('StylusTipToStylus') );
     D{i} = StyTip_RAS;
@@ -59,7 +60,7 @@ end%for
 acc = zeros(1,subjNum);
 
 %Iterate over all subjects (leave-one-out method)
-for subj = 1:subjNum
+for subj = 7:subjNum
     
     %Now, train the Markov model algorithm
     markovTrain( D_Train(:,subj) );

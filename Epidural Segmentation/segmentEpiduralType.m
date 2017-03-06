@@ -8,6 +8,7 @@
 %Return D_Test: The automatically segmented procedures
 function [acc D_Test] = segmentEpiduralType(skill,technique)
 
+TRAIN_SET_SIZE = 34;
 %create an organizer object for reading/writing files
 o = Organizer();
 
@@ -25,7 +26,7 @@ subjNum = length(subjArray);
 %Create a cell array of procedural data objects
 D = cell(1,subjNum);
 D_Test = cell(1,subjNum);
-D_Train = cell(subjNum-1,subjNum);
+D_Train = cell(TRAIN_SET_SIZE,subjNum);
 
 
 %Get a Data object for each procedure
@@ -39,10 +40,19 @@ end%for
 %disp('Data read from file');
 
 %Create a set of training procedures
-onlyTrain = ~eye(subjNum);
+onlyTrain = zeros( subjNum );
+for i = 1:subjNum
+    for j = 1:subjNum
+        if ( j <= TRAIN_SET_SIZE )
+            onlyTrain( i, mod( i + j - 1, subjNum ) + 1 ) = 1;
+        end
+    end
+end
+onlyTrain = ~~onlyTrain;
+
 for i=1:subjNum
     D_Test{i} = Data( D{i}.T, D{i}.X, zeros(size(D{i}.K)), D{i}.S );
-    D_Train(:,i) = D(onlyTrain(:,i));    
+    D_Train(:,i) = D(onlyTrain(:,i));
 end%for
 
 %disp('Data organized into training & testing sets');
@@ -62,7 +72,7 @@ for subj = 1:subjNum
     MD = markovSegment( D_Test{subj} );
     
     %disp('Procedure segmented');
-
+    
     %Calculate the accuracy of the task segmentation
     [segAcc, ~, ~, accDTW, ssod, n] = segmentAccuracy(D{subj}.K,MD.DK.X);
     %Add the automatic segmentation to the test data

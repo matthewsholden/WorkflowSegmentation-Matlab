@@ -104,7 +104,7 @@ classdef Data
             XQ = D.X;
             
             %For each time step
-            for i=1:D.n
+            for i=1:D.count
                 XQ(i,Q==1) = normr(D.X(i,Q==1));
             end
             

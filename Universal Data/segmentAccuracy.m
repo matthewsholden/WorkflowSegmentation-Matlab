@@ -97,15 +97,18 @@ end
 accMMD = totalTime / numStamps;
 
 
-% %Initialize the matrix of zeros
-% maxTask = max( max(trueTask), max(segTask) );
-% fullAcc = zeros( maxTask, maxTask );
-% %Iterate over all time stamps to determine classification matrix
-% for i = 1:length(trueTask)
-%     %Each time we classify, add the point to the matrix
-%     %True task is columns, estimated task is rows
-%     fullAcc( segTask(i), trueTask(i) ) = fullAcc( segTask(i), trueTask(i) ) + 1;
-% end%for
+%Initialize the matrix of zeros
+maxTask = max( max(trueTask), max(segTask) );
+fullAcc = zeros( maxTask, maxTask );
+%Iterate over all time stamps to determine classification matrix
+for i = 1:length(trueTask)
+    %Each time we classify, add the point to the matrix
+    %True task is columns, estimated task is rows
+    fullAcc( segTask(i), trueTask(i) ) = fullAcc( segTask(i), trueTask(i) ) + 1;
+end%for
+
+%fullAcc % This is the confusion matrix
+
 %
 %
 % %Also, calculate how many more (supposed) transitions occur in estimation

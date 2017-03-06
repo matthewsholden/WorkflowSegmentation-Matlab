@@ -17,8 +17,8 @@ function D = Synthetic(Key)
 o = Organizer();
 
 %Read the task record from our example record file
-Q = o.read('Q');
-Play = o.read('Play');
+Q = o.read('Quaternion');
+Play = o.read('FramesPerSec');
 
 %Read the noise matrices here from file
 X_Bs = o.read('X_Bs');
@@ -35,7 +35,7 @@ dof = size(Key.X,2);
 
 %Calculate the number of time steps that will be required for the desired
 %output accuracy
-n = round( ( Key.T(Key.count) - Key.T(1) ) / Play(1) );
+n = round( ( Key.T(Key.count) - Key.T(1) ) * Play(1) );
 
 %Initialize the size of the time vector and the DOF matrix
 T=zeros(n,1);
@@ -44,7 +44,7 @@ K=zeros(n,1);
 
 %Let T be related to the time step by a scaling dt
 for j=1:n
-    T(j) = (j-1) * Play(1);
+    T(j) = (j-1) / Play(1);
 end
 
 %We want to calculate a spline for the trajectory given by each degree of
@@ -64,7 +64,7 @@ for i=1:n
         X(i,j) = linearSpline(Key.T,Key.X(:,j),T(i));
         %And calculate the task at the current time step, adding one since the
         %data point indicates the end of the previous task
-        K(i) = Key.K( getInterval3(Key.T,T(i)) + 1 );
+        K(i) = Key.K( getInterval(Key.T,T(i)) + 1 );
     end
     
 end
@@ -78,7 +78,8 @@ end
 D = Data(T,X,K,0);
 
 %Add noise to our data
-D = D.addHumanNoise(X_Bs,X_Wt,X_Mx,Human);
+%D = D.addHumanNoise(X_Bs,X_Wt,X_Mx,Human);
+D = D.addNoise( X_Bs, X_Wt, X_Mx );
 
 %Normalize the quaternions as required
 D = D.normalizeQuaternion(Q);

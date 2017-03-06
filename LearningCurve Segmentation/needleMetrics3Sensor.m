@@ -60,8 +60,16 @@ for i = 1:numSubj
                
     end%for
     
-    nameArray = cat( 1, nameArray, currSubjName);
-    metricArray = cat( 1, metricArray, currMetrics);    
+    currMetrics
+    currSubjName
+    
+    if ( ~isempty( currSubjName ) && strcmp( currSubjName, '.' ) == 0 && strcmp( currSubjName, '..' ) == 0 )
+      nameArray = cat( 1, nameArray, currSubjName);
+      metricArray = cat( 1, metricArray, currMetrics);    
+    end%if
+    
+    nameArray
+    metricArray
     
 end%for
 

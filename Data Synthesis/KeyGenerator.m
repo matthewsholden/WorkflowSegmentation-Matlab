@@ -13,30 +13,38 @@ classdef KeyGenerator
         %The task which was just performed and ended at the key point
         K;
         %The definitions of the tasks
-        TaskDef
+        TaskDef;
         %A count of how many key points have been added to the object
         count;
+        % The entry and target
+        Entry;
+        Target;
     end
     
     
     methods
         
         %This constructor will create an object with an initial point
-        function Key = KeyGenerator(x)
+        function Key = KeyGenerator()
             %Initialize all of our matrices
             Key.T = zeros(1,1);
-            Key.X = zeros(1,length(x));
+            Key.X = zeros(1,8);
             Key.K = zeros(1,1);
             Key.TaskDef = cell(1,5);
             
             %Initialize count to be one since we just added a point
             Key.count = 1;
-            
-            %Now, assign the specified point to the first element of X
-            Key.X(1,:) = x;
+                      
+            % Initialize the entry and target
+            Key.Entry = [ 0, 0, 0 ];
+            Key.Target = [ 0, 0, 0 ];
             
             %Find the definitions of the tasks from the entry-target line
             Key = Key.defineTasks();
+            
+            %Create a random starting point outside tissue
+            outTissuePoint = Key.Entry + rand() * ( Key.Entry - Key.Target ) + rand() * normr( rand( 1, 3 ) ) * norm( Key.Entry - Key.Target ); 
+            Key.X(Key.count,:) = [ outTissuePoint, normr( rand( 1, 4 ) ), 0 ]';
             
         end
         
@@ -73,37 +81,50 @@ classdef KeyGenerator
             %location recorded in file
             o = Organizer();
             %The the entry-target points from file
-            ET = o.read('ET');
+            ET = o.read('EntryTarget');
             %Now, separate into the entry and target points
-            Entry = ET(1,:);
-            Target = ET(2,:);
+            Key.Entry = ET(1,:);
+            Key.Target = ET(2,:);
             
             %The first task
-            Key.TaskDef{1} = [Entry, 0, 0, 0, 0, 0]';
+            Key.TaskDef{1} = [Key.Entry, 0, 0, 0, 0, 0]';
             %The second task
-            Key.TaskDef{2} = [Entry, vectorToQuat(Entry-Target,[1 0 0]'), 0]';
+            Key.TaskDef{2} = [Key.Entry, vectorToQuat(Key.Entry-Key.Target,[1 0 0]'), 0]';
             %The third task
-            Key.TaskDef{3} = [Target, vectorToQuat(Entry-Target,[1 0 0]'), 0]';
+            Key.TaskDef{3} = [Key.Target, vectorToQuat(Key.Entry-Key.Target,[1 0 0]'), 0]';
             %The fourth task
-            Key.TaskDef{4} = [Target, vectorToQuat(Entry-Target,[1 0 0]'), 0]';
+            Key.TaskDef{4} = [Key.Target, vectorToQuat(Key.Entry-Key.Target,[1 0 0]'), 0]';
             %The fifth task
-            Key.TaskDef{5} = [Entry, vectorToQuat(Entry-Target,[1 0 0]'), 0]';
+            Key.TaskDef{5} = [Key.Entry, vectorToQuat(Key.Entry-Key.Target,[1 0 0]'), 0]';
             
         end
         
         %This function will add task 1 to the list of key points
         function Key = addTask1(Key,tasklength)
+            % First point
             %Increment the count of tasks
-            Key.count = Key.count + 1;
+            Key.count = Key.count + 1;           
+            %Add the point to the point matrix
+            outTissuePoint = Key.Entry + rand() * ( Key.Entry - Key.Target ) + rand() * normr( rand( 1, 3 ) ) * norm( Key.Entry - Key.Target ); 
+            Key.X(Key.count,:) = [ outTissuePoint, normr( rand( 1, 4 ) ), 0 ]';
+            %Add the time to the time matrix
+            Key.T(Key.count,1) = Key.T(Key.count-1,1) + tasklength / 2;
+            %Add the task completed to the task matrix
+            Key.K(Key.count,1) = 1;
+            
+            % Second point
+            %Increment the count of tasks
+            Key.count = Key.count + 1;            
             %Add the point to the point matrix
             Key.X(Key.count,:) = Key.TaskDef{1};
             %For the first task, the end point will take the same angle as
             %the previous key point
             Key.X(Key.count,4:7) = Key.X(Key.count-1,4:7);
             %Add the time to the time matrix
-            Key.T(Key.count,1) = Key.T(Key.count-1,1) + tasklength;
+            Key.T(Key.count,1) = Key.T(Key.count-1,1) + tasklength / 2;
             %Add the task completed to the task matrix
             Key.K(Key.count,1) = 1;
+            
         end
         
         %This function will add task 2 to the list of key points
@@ -112,6 +133,9 @@ classdef KeyGenerator
             Key.count = Key.count + 1;
             %Add the point to the point matrix
             Key.X(Key.count,:) = Key.TaskDef{2};
+            %For the second task, the end point will take the same position as
+            %the previous key point
+            Key.X(Key.count,1:3) = Key.X(Key.count-1,1:3);
             %Add the time to the time matrix
             Key.T(Key.count,1) = Key.T(Key.count-1,1) + tasklength;
             %Add the task completed to the task matrix
@@ -124,6 +148,7 @@ classdef KeyGenerator
             Key.count = Key.count + 1;
             %Add the point to the point matrix
             Key.X(Key.count,:) = Key.TaskDef{3};
+            Key.X(Key.count,1:3) = [  Key.Target + rand() * ( Key.X(Key.count-1,1:3) - Key.Target ) ]';
             %Add the time to the time matrix
             Key.T(Key.count,1) = Key.T(Key.count-1,1) + tasklength;
             %Add the task completed to the task matrix
@@ -136,6 +161,9 @@ classdef KeyGenerator
             Key.count = Key.count + 1;
             %Add the point to the point matrix
             Key.X(Key.count,:) = Key.TaskDef{4};
+            %For the fourth task, the end point will take the same position and angle as
+            %the previous key point
+            Key.X(Key.count,:) = Key.X(Key.count-1,:);
             %Add the time to the time matrix
             Key.T(Key.count,1) = Key.T(Key.count-1,1) + tasklength;
             %Add the task completed to the task matrix
@@ -148,6 +176,9 @@ classdef KeyGenerator
             Key.count = Key.count + 1;
             %Add the point to the point matrix
             Key.X(Key.count,:) = Key.TaskDef{5};
+            %For the fifth task, the end point will take the same angle as
+            %the previous key point
+            Key.X(Key.count,4:7) = Key.X(Key.count-1,4:7);
             %Add the time to the time matrix
             Key.T(Key.count,1) = Key.T(Key.count-1,1) + tasklength;
             %Add the task completed to the task matrix

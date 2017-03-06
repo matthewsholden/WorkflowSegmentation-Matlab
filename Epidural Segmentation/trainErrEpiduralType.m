@@ -34,6 +34,9 @@ for i=1:subjNum
     Sty_Ref = Ref_Tr.relative( Sty_Tr, true, false);
     Sty_Ent = Sty_Ref.calibration( o.read('ReferenceToEntry'), o.read('Identity') );
     D{i} = Sty_Ent;
+    
+    cellToMatrix( taskLength( D{i}.T, D{i}.K ) )
+    
 end%for
 
 %disp('Data read from file');
@@ -56,6 +59,7 @@ for subj = 1:subjNum
     %Now, train the Markov model algorithm
     markovTrain( D_Train(:,subj) );
     
+    calcTaskSizes( D_Train )
     %disp('Algorithm trained');
     
     %Perform a Markov Model task segmentation on the test procedure

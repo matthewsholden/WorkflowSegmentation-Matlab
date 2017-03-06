@@ -97,7 +97,7 @@ for j=1:numTools
     countX{j} = 0;
     XT{j} = zeros(0,1);
     XTN{j} = zeros(0,1);
-    X{j} = zeros(0,7);
+    X{j} = zeros(0,8);
     
 end%for
 
@@ -214,7 +214,7 @@ end%for
 MTT = MT + MTN / 1e9;
 for j=1:numTools
     XTT{j} = XT{j} + XTN{j} / 1e9;
-    XTT{j} = XTT{j} - min( XTT{j} );
+    %XTT{j} = XTT{j} - min( XTT{j} );
     %Calculate the task segmentation for the procedure
     XK{j} = segToTaskData(XTT{j},MTT,MK);
 end%for

@@ -21,7 +21,7 @@ numTools = length(toolNames);
 for i = 1:numSubj
     
     %Get the mha contents of the directory of the current subject
-    currSubjDir = dir([dirPath, '/', subjDir(i).name, '/*Parse.xml']);
+    currSubjDir = dir([dirPath, '/', subjDir(i).name, '/*Rem.xml']);
     
     %Iterate over all mha files for the current subject
     for j = 1:length(currSubjDir)

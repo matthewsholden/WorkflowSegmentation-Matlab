@@ -23,7 +23,7 @@ function x = addNoise(di, task, sd, X_Bs, X_Wt, X_Mx)
 %Create a Gaussian mixture object with gaussians each of dimension 1
 %We require k = number of components, d = 1
 mu=zeros(k,1);
-%The standard deviation sigma is given by the matrices SX, WX
+%The COVARIANCE sigma is given by the matrices SX, WX
 sigma=X_Bs(di,task,:)+X_Wt(di,task,:)*sd(di,task);
 %The mixture components for each gaussian distribution
 %We must turn this into a row vector
